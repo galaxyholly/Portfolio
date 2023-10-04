@@ -1,0 +1,45 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.alertdismiss {
+  margin: 0;
+  padding: 0;
+}
+
+.alert {
+  position: fixed;
+  bottom: 0;
+  opacity: 1;
+  transition: opacity 2s ease-in-out;
+}
+
+.fadeOut {
+  opacity: 0 !important;
+}
+
+.test {
+  position: relative;
+  margin-left: 3vw;
+  margin-right: 3vw;
+  margin-top: 3vw;
+  margin-bottom: 3vw;
+  padding: 1vw;
+}
+
+.postbutton {
+  position: fixed;
+  left: 95vw;
+  top: 90vh;
+  border-radius: 50%;
+  width: 3vw;
+  height: 3vw;
+  text-align: horizontal;
+  vertical-align: baseline;
+}
+
+.createicon {
+  position: relative;
+
+}

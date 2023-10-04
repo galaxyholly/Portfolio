@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+
+<head>
+    <title>galaxyadventures.com</title>
+    <style>
+        /* Add your CSS here */
+    </style>
+</head>
+
+<div class="navbar">
+    <h1 class="navtitle"> Galaxy Polls</h1>
+
+</div>
+
+
+
+<div class="container">
+    <link rel="stylesheet" href="{% static 'polls/style.css' %}">
+
+    {% if latest_question_list %}
+        <ul>
+        {% for question in latest_question_list %}
+            <li><a href="{% url 'polls:vote' question.id %}">{{ question.question_text }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No polls are available.</p>
+    {% endif %}
+</div>
+</html>

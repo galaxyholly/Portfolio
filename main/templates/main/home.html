@@ -1,0 +1,28 @@
+{% extends "nav.html" %}
+{% block htmlhead %}
+{% load static %}
+
+{% endblock htmlhead %}
+
+{% block content %}
+
+
+
+{% if latest_post_list %}
+
+
+  
+  {% for post in latest_post_list %}
+  <div class="test">
+    <h2>{{ post.title }}</h2>
+    <span>{{ post.content }}</span>
+  </div>
+  {% endfor %}
+
+
+{% else %}
+  <p>No posts are available.</p>
+{% endif %}
+
+{% include 'main/includes/messages.html' %}
+{% endblock %}
