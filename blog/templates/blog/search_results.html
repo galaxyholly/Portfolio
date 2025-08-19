@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h1>Search Results</h1>
+            
+            <!-- Search form -->
+            <form method="GET" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="search" value="{{ query }}" 
+                           class="form-control" placeholder="Search posts...">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+            </form>
+            
+            {% if query %}
+                <p class="text-muted mb-4">
+                    Found {{ total_results }} result{{ total_results|pluralize }} for "<strong>{{ query }}</strong>"
+                </p>
+            {% endif %}
+            
+            <!-- Results -->
+            {% if page_obj %}
+                <div class="posts-list">
+                    {% for post in page_obj %}
+                        <article class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <a href="{% url 'blog:blog_detail' post.pk %}">{{ post.title }}</a>
+                                </h5>
+                                <p class="card-text">{{ post.content|truncatewords:30 }}</p>
+                                <small class="text-muted">
+                                    By {{ post.author }} • {{ post.pub_date|date:"M d, Y" }}
+                                </small>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <nav aria-label="Search results pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?search={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?search={{ query }}&page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <h3>No posts found</h3>
+                    <p>Try different keywords or <a href="{% url 'blog:index' %}">browse all posts</a></p>
+                </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="{% url 'blog:index' %}" class="btn btn-outline-secondary">← Back to All Posts</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.search-status {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+</style>
+{% endblock %}

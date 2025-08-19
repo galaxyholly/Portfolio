@@ -1,0 +1,562 @@
+/* Brand + base */
+:root {
+ --bg: #f6f7fb;
+ --text: #233044;
+ --muted: #6b7a90;
+ --border: rgba(18,22,33,0.08);
+ --card: rgba(255,255,255,0.65);
+ --glass: rgba(255,255,255,0.55);
+ --shadow: 0 8px 30px rgba(25,35,52,0.08);
+ --accent: #7c5cff;
+ --accent2: #00c2ff;
+ --radius-lg: 22px;
+ --radius-md: 16px;
+ --radius-sm: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+ margin: 0;
+ padding: 0;
+}
+
+body {
+ background: radial-gradient(1200px 800px at 10% -10%, #eef3ff, transparent 60%),
+             radial-gradient(1000px 700px at 120% 0%, #fbecff, transparent 60%),
+             var(--bg);
+ color: var(--text);
+ font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
+ line-height: 1.55;
+}
+
+/* Hero */
+.hero {
+ max-width: 1200px;
+ margin: 32px auto 24px;
+ padding: 0 20px;
+}
+
+.hero-inner {
+ position: relative;
+ overflow: hidden;
+ border-radius: var(--radius-lg);
+ padding: 28px;
+ background: linear-gradient(135deg, #eef5ff, #f8f0ff);
+ border: 1px solid rgba(124,92,255,0.15);
+ box-shadow: var(--shadow);
+ display: grid;
+ grid-template-columns: auto 1fr;
+ gap: 22px;
+ align-items: center;
+}
+
+.hero-inner::before,
+.hero-inner::after {
+ content: "";
+ position: absolute;
+ width: 260px;
+ height: 260px;
+ border-radius: 50%;
+ filter: blur(40px);
+ opacity: 0.6;
+ pointer-events: none;
+}
+
+.hero-inner::before {
+ background: radial-gradient(circle at center, rgba(124,92,255,.35), transparent 60%);
+ top: -60px;
+ right: -60px;
+ animation: float 10s ease-in-out infinite;
+}
+
+.hero-inner::after {
+ background: radial-gradient(circle at center, rgba(0,194,255,.35), transparent 60%);
+ bottom: -80px;
+ left: -60px;
+ animation: float 12s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+ 0%, 100% { transform: translateY(0) translateX(0); }
+ 50% { transform: translateY(-8px) translateX(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .hero-inner::before, .hero-inner::after { animation: none; }
+}
+
+.hero-avatar {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+
+.hero-avatar img {
+ width: 100px;
+ height: 100px;
+ border-radius: 50%;
+ display: block;
+ box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8), 0 8px 24px rgba(18,22,33,.08);
+ object-fit: cover;
+}
+
+.hero-text h1 {
+ margin: 2px 0 6px;
+ font-size: 2rem;
+ letter-spacing: 0.1px;
+}
+
+.hero-text p {
+ color: var(--muted);
+ margin: 0 0 12px;
+}
+
+/* Built with section in hero */
+.built-with {
+ margin: 10px 0 16px 0;
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ flex-wrap: wrap;
+}
+
+.built-label {
+ font-size: 0.85rem;
+ color: var(--muted);
+ font-weight: 500;
+}
+
+.tech-badges {
+ display: flex;
+ gap: 6px;
+ flex-wrap: wrap;
+}
+
+.tech-badge {
+ font-size: 0.75rem;
+ padding: 4px 10px;
+ border-radius: 14px;
+ background: linear-gradient(135deg, var(--accent), var(--accent2));
+ color: white;
+ font-weight: 600;
+ opacity: 0.9;
+ transition: all 0.3s ease;
+ border: 1px solid rgba(255,255,255,0.2);
+}
+
+.tech-badge:hover {
+ opacity: 1;
+ transform: translateY(-1px);
+ box-shadow: 0 4px 12px rgba(124,92,255,0.3);
+}
+
+/* Icon buttons for social links with expandable labels */
+.hero-cta {
+ display: flex;
+ gap: 10px;
+ flex-wrap: wrap;
+}
+
+.icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start; /* Will be controlled by JS */
+  height: 40px;
+  width: 40px;
+  border-radius: 20px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow: hidden;
+  /* Padding will be set by JS */
+}
+
+.icon-btn .icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  transition: transform 0.4s ease;
+  z-index: 2;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.icon-btn .label {
+  position: absolute;
+  /* Left position will be set by JS */
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+}
+
+.icon-btn:hover .icon {
+  transform: translateX(0);
+}
+
+.icon-btn:hover .label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.icon-btn.github { color: #111; }
+.icon-btn.linkedin { color: #0a66c2; }
+
+/* Main grid */
+.grid {
+ max-width: 1200px;
+ margin: 0 auto;
+ padding: 0 20px 60px;
+ display: grid;
+ grid-template-columns: 1.2fr 0.8fr;
+ gap: 36px;
+ align-items: stretch;
+}
+
+.col {
+ display: flex;
+ flex-direction: column;
+}
+
+.section-head {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ margin: 6px 0 12px;
+}
+
+.section-head h2 { 
+ margin: 0; 
+ font-size: 1.2rem; 
+}
+
+.section-head .link { 
+ color: var(--accent); 
+ text-decoration: none; 
+ font-weight: 600; 
+}
+
+/* Cards */
+
+.cards { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 16px;
+  flex: 1;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .25s ease, border-color .2s ease;
+  overflow: hidden;
+}
+
+/* Only blog post cards should expand equally */
+.cards .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.card:hover {
+ transform: translateY(-3px);
+ box-shadow: 0 18px 44px rgba(25,35,52,.14);
+ border-color: rgba(124,92,255,.28);
+}
+
+.card.post {
+  padding: 20px;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card.post h3 {
+ margin: 0 0 8px;
+ font-size: 1.1rem;
+ line-height: 1.4;
+}
+
+.card.post h3 a { 
+ color: inherit; 
+ text-decoration: none; 
+}
+
+.card.post p {
+ margin: 0 0 12px;
+ color: var(--muted);
+ line-height: 1.5;
+ font-size: 0.95rem;
+ flex-grow: 1;
+}
+
+.card.post .meta {
+ display: flex;
+ justify-content: space-between;
+ font-size: 0.86rem;
+ color: #8b97aa;
+ padding-top: 10px;
+ border-top: 1px solid rgba(18,22,33,.06);
+ margin-top: auto;
+}
+
+
+/* Projects column */
+.projects { 
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.card.featured { 
+  cursor: pointer;
+  padding: 0; 
+  flex: none; /* Override the flex: 1 from .card */
+  display: block; /* Override the flex display */
+}
+
+
+.project-info { 
+  padding: 16px 16px 18px; 
+}
+
+.project-info h3 { 
+ margin: 0 0 6px; 
+}
+
+.project-info p { 
+ margin: 0 0 10px; 
+ color: var(--muted); 
+}
+
+.tags { 
+ display: flex; 
+ flex-wrap: wrap; 
+ gap: 6px; 
+}
+
+.tags span {
+ font-size: 0.78rem;
+ padding: 4px 10px;
+ border-radius: 999px;
+ background: linear-gradient(135deg, #eef5ff, #f3ecff);
+ border: 1px solid rgba(124,92,255,.18);
+ color: #5a68a0;
+ font-weight: 600;
+}
+
+.frame-outer {
+  width: 100%;
+  overflow: hidden;
+  background: #0e1220;
+}
+
+.frame-inner {
+  width: 100%;
+  height: 280px; /* Keep the fixed height */
+}
+
+.frame-inner iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* Mini project list */
+.mini-list { 
+ display: flex; 
+ flex-direction: column; 
+ gap: 14px; 
+ margin-top: 14px;
+ flex-grow: 1;
+ justify-content: flex-start;
+}
+
+.mini-card {
+ cursor: pointer;
+ background: var(--card);
+ border: 1px solid var(--border); /* Add border to match main cards */
+ border-radius: var(--radius-md);
+ padding: 12px 14px;
+ box-shadow: var(--shadow);
+ flex-shrink: 0;
+ flex-grow: 0;
+ transition: transform .18s ease, box-shadow .25s ease, border-color .2s ease; /* Add transitions */
+}
+
+/* Add hover effect matching the main cards */
+.mini-card:hover {
+ transform: translateY(-3px);
+ box-shadow: 0 18px 44px rgba(25,35,52,.14);
+ border-color: rgba(124,92,255,.28);
+}
+
+.mini-card h4 { 
+ margin: 0 0 4px; 
+ font-size: 1rem; 
+}
+
+.mini-card h4 a { 
+ color: inherit; 
+ text-decoration: none; 
+}
+
+.mini-card p { 
+ margin: 0 0 6px; 
+ color: var(--muted); 
+}
+
+.mini-tags { 
+ display: flex; 
+ gap: 6px; 
+ flex-wrap: wrap; 
+}
+
+.mini-tags span {
+font-size: 0.78rem;
+ padding: 4px 10px;
+ border-radius: 999px;
+ background: linear-gradient(135deg, #eef5ff, #f3ecff);
+ border: 1px solid rgba(124,92,255,.18);
+ color: #5a68a0;
+ font-weight: 600;
+}
+
+/* Footer */
+.site-footer {
+ max-width: 1200px;
+ margin: 0 auto 40px;
+ padding: 20px;
+ text-align: center;
+}
+
+.footer-content {
+ padding: 20px;
+ background: var(--glass);
+ border: 1px solid var(--border);
+ border-radius: var(--radius-md);
+ box-shadow: var(--shadow);
+}
+
+.footer-tech {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 10px;
+ margin-bottom: 8px;
+ flex-wrap: wrap;
+}
+
+.footer-label {
+ font-size: 0.9rem;
+ color: var(--muted);
+ font-weight: 500;
+}
+
+.footer-badge {
+ font-size: 0.8rem;
+ padding: 4px 12px;
+ border-radius: 16px;
+ background: linear-gradient(135deg, var(--accent), var(--accent2));
+ color: white;
+ font-weight: 600;
+}
+
+.footer-note {
+ font-size: 0.85rem;
+ color: var(--muted);
+ font-style: italic;
+}
+
+/* Sticky projects on desktop */
+@media (min-width: 1025px) {
+ .projects { position: sticky; top: 24px; }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+ .grid { 
+   grid-template-columns: 1fr; 
+   gap: 28px; 
+ }
+ .projects { 
+   position: static; 
+ }
+ .frame-inner { 
+   height: 240px; 
+ }
+}
+
+@media (max-width: 768px) {
+ body { 
+   padding-top: 60px; 
+ }
+}
+
+@media (max-width: 720px) {
+ .hero {
+   margin: 20px auto 24px;
+   padding: 0 15px;
+ }
+ 
+ .hero-inner {
+   grid-template-columns: 1fr;
+   text-align: center;
+   padding: 22px;
+ }
+ 
+ .hero-cta { 
+   justify-content: center; 
+ }
+ 
+ .hero-avatar { 
+   display: flex; 
+   justify-content: center; 
+ }
+ 
+ .grid {
+   margin: 20px auto 40px;
+   padding: 0 15px 40px;
+   gap: 24px;
+ }
+ 
+ .frame-inner { 
+   height: 220px; 
+ }
+ 
+ .icon-btn { 
+   width: 36px; 
+   height: 36px;
+   min-width: 36px;
+   padding: 0 8px;
+ }
+ 
+ .icon-btn .icon { 
+   width: 18px; 
+   height: 18px; 
+ }
+ 
+ .icon-btn .label {
+   left: 32px;
+ }
+ 
+ .icon-btn:hover {
+   min-width: 100px;
+ }
+} 

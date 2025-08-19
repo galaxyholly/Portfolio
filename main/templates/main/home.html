@@ -1,28 +1,279 @@
-{% extends "nav.html" %}
-{% block htmlhead %}
+
 {% load static %}
 
-{% endblock htmlhead %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'main/home.css' %}?v={% now 'U' %}">
+{% endblock %}
 
 {% block content %}
-
-
-
-{% if latest_post_list %}
-
-
-  
-  {% for post in latest_post_list %}
-  <div class="test">
-    <h2>{{ post.title }}</h2>
-    <span>{{ post.content }}</span>
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-avatar">
+      <img src="{% static 'img/pfp.jpg' %}" alt="Holly Harrison's profile photo" loading="eager" />
+    </div>
+    <div class="hero-text">
+        <h1>Holly Harrison</h1>
+        <p>Full‑stack developer specialized in distributed systems, resilient backends, and fast, friendly UIs.</p>
+        
+        <!-- Built with section -->
+        <div class="built-with">
+          <span class="built-label">Blog and Portfolio built with:</span>
+          <div class="tech-badges">
+            <span class="tech-badge">Django</span>
+            <span class="tech-badge">Custom JS</span>
+            <span class="tech-badge">Home Server</span>
+          </div>
+        </div>
+        
+        <div class="hero-cta icons">
+          <a class="icon-btn linkedin" href="https://www.linkedin.com/in/h-h-dev" target="_blank" rel="noopener noreferrer" aria-label="Visit my LinkedIn profile" title="LinkedIn">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" role="img">
+              <path d="M19 3A2.94 2.94 0 0 1 22 6v12a2.94 2.94 0 0 1-3 3H5a2.94 2.94 0 0 1-3-3V6a2.94 2.94 0 0 1 3-3h14zm-9.5 14.5V10H7v7.5h2.5zM8.25 8.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zM19 17.5v-4.1c0-2.2-1.18-3.4-2.75-3.4-1.27 0-1.84.7-2.16 1.2v-1.03H11.5V17.5H14v-3.8c0-1 .19-1.97 1.43-1.97 1.22 0 1.24 1.14 1.24 2.03v3.74H19z"/>
+            </svg>
+            <span class="label">LinkedIn</span>
+          </a>
+          <a class="icon-btn github" href="https://github.com/galaxyholly" target="_blank" rel="noopener noreferrer" aria-label="Visit my GitHub profile" title="GitHub">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" role="img">
+              <path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.36-3.37-1.36-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.13-4.56-5 0-1.11.39-2.01 1.03-2.72-.1-.26-.45-1.3.1-2.7 0 0 .84-.27 2.75 1.03a9.2 9.2 0 0 1 5 0c1.91-1.3 2.75-1.03 2.75-1.03.55 1.4.2 2.44.1 2.7.64.71 1.03 1.61 1.03 2.72 0 3.88-2.35 4.73-4.59 4.98.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .26.18.59.69.48A10.02 10.02 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/>
+            </svg>
+            <span class="label">GitHub</span>
+          </a>
+          {% if dashboard_available %}
+          <a class="icon-btn dashboard" href="{{ dashboard_iframe_src }}" target="_blank" rel="noopener noreferrer" aria-label="View live dashboard" title="Live Dashboard">
+            <svg class="icon" viewBox="0 0 24 24" role="img" aria-hidden="true">
+                <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
+            </svg>
+            <span class="label">Dashboard</span>
+          </a>
+          {% endif %}
+        </div>
+    </div>
   </div>
-  {% endfor %}
+</section>
 
+<div class="grid">
+  <!-- Left: Blog -->
+  <section class="col blog" aria-labelledby="blog-heading">
+    <div class="section-head">
+      <h2 id="blog-heading">Latest Posts</h2>
+      <a class="link" href="{% url 'blog:index' %}" aria-label="View all blog posts">View All</a>
+    </div>
 
-{% else %}
-  <p>No posts are available.</p>
-{% endif %}
+    <div class="cards">
+      {% for post in latest_posts %}
+      <article class="card post" role="article">
+        <h3><a href="{% url 'blog:blog_detail' post.id %}">{{ post.title|truncatechars:60 }}</a></h3>
+        <p>{{ post.content|truncatewords:26|striptags }}</p>
+        <div class="meta">
+          <time datetime="{{ post.pub_date|date:'c' }}">{{ post.pub_date|date:"M d, Y" }}</time>
+          <span>by {{ post.author.username|default:"Anonymous" }}</span>
+        </div>
+      </article>
+      {% empty %}
+      <article class="card post" role="article">
+        <h3>Nothing yet</h3>
+        <p>Posts are coming soon—check back shortly.</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
 
-{% include 'main/includes/messages.html' %}
+  <!-- Right: Projects -->
+  <aside class="col projects" aria-labelledby="projects-heading">
+    <div class="section-head">
+      <h2 id="projects-heading">Projects</h2>
+    </div>
+
+    <!-- Featured/live project with dashboard -->
+    <article class="card featured" role="article">
+      <div class="frame-outer">
+        <div class="frame-inner">
+          {% if dashboard_available %}
+          <iframe
+            src="{{ dashboard_iframe_src }}"
+            title="Live Translation Service Dashboard showing real-time metrics"
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin"
+            referrerpolicy="strict-origin-when-cross-origin"
+          ></iframe>
+          {% else %}
+          <div class="dashboard-placeholder">
+            <p>Dashboard temporarily unavailable</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="project-info">
+        <h3>
+          <a href="{% url 'main:translation' %}" aria-label="Learn more about the Translation Microservice">
+            Scalable Translation Microservice
+          </a>
+        </h3>
+        <p>German→English microservice with per‑core worker pools, adaptive scaling, and real‑time metrics.</p>
+        <div class="tags" role="list" aria-label="Technologies used">
+          <span role="listitem">Python</span>
+          <span role="listitem">Flask</span>
+          <span role="listitem">Multiprocessing</span>
+          <span role="listitem">Discord.py</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- Other projects list -->
+    <div class="mini-list">
+      {% for project in projects %}
+      <article class="mini-card" role="article">
+        <div class="mini-info">
+          <h4>
+            {% if project.url %}
+            <a href="{{ project.url }}" aria-label="Learn more about {{ project.title }}">{{ project.title }}</a>
+            {% else %}
+            {{ project.title }}
+            {% endif %}
+          </h4>
+          <p>{{ project.description|truncatewords:16 }}</p>
+          {% if project.tags %}
+          <div class="mini-tags" role="list" aria-label="Technologies used in {{ project.title }}">
+            {% for tag in project.tags|slice:":3" %}
+            <span role="listitem">{{ tag }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </article>
+      {% empty %}
+      <article class="mini-card" role="article">
+        <p>More projects coming soon!</p>
+      </article>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        initializeIconButtons();
+        initializeProjectCards();
+    } catch (error) {
+        console.error('Error initializing home page:', error);
+    }
+});
+
+function initializeIconButtons() {
+    const buttons = document.querySelectorAll('.icon-btn');
+    
+    buttons.forEach(button => {
+        try {
+            const icon = button.querySelector('.icon');
+            const label = button.querySelector('.label');
+            
+            if (!icon || !label) return;
+            
+            // Get computed styles to account for borders
+            const computedStyle = window.getComputedStyle(button);
+            const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
+            const borderRight = parseFloat(computedStyle.borderRightWidth) || 0;
+            
+            // Calculate available internal space
+            const buttonWidth = button.offsetWidth;
+            const internalWidth = buttonWidth - borderLeft - borderRight;
+            const iconWidth = 20;
+            
+            // Calculate perfect centering for collapsed state
+            const centerPadding = Math.max(0, (internalWidth - iconWidth) / 2);
+            
+            // Set initial centered position
+            button.style.paddingLeft = centerPadding + 'px';
+            button.style.paddingRight = centerPadding + 'px';
+            button.style.justifyContent = 'flex-start';
+            
+            // Measure label width precisely
+            const labelWidth = measureTextWidth(label.textContent, '0.85rem', '600', getComputedStyle(label).fontFamily);
+            
+            // Calculate expanded width with uniform padding
+            const uniformPadding = 15;
+            const spaceBetween = 8;
+            const totalBorderWidth = borderLeft + borderRight;
+            const contentWidth = uniformPadding + iconWidth + spaceBetween + labelWidth + uniformPadding;
+            const expandedWidth = contentWidth + totalBorderWidth;
+            
+            button.addEventListener('mouseenter', () => {
+                button.style.width = expandedWidth + 'px';
+                button.style.paddingLeft = uniformPadding + 'px';
+                button.style.paddingRight = uniformPadding + 'px';
+                label.style.left = (uniformPadding + iconWidth + spaceBetween) + 'px';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.width = buttonWidth + 'px';
+                button.style.paddingLeft = centerPadding + 'px';
+                button.style.paddingRight = centerPadding + 'px';
+                label.style.left = '40px';
+            });
+            
+        } catch (error) {
+            console.error('Error initializing icon button:', error);
+        }
+    });
+}
+
+function measureTextWidth(text, fontSize, fontWeight, fontFamily) {
+    try {
+        const measureDiv = document.createElement('div');
+        measureDiv.style.cssText = `
+            position: absolute;
+            visibility: hidden;
+            white-space: nowrap;
+            font-size: ${fontSize};
+            font-weight: ${fontWeight};
+            font-family: ${fontFamily};
+        `;
+        measureDiv.textContent = text;
+        document.body.appendChild(measureDiv);
+        
+        const width = measureDiv.offsetWidth;
+        document.body.removeChild(measureDiv);
+        return width;
+    } catch (error) {
+        console.error('Error measuring text width:', error);
+        return 100; // Fallback width
+    }
+}
+
+function initializeProjectCards() {
+    // Add click handlers for project cards (if needed)
+    const projectCards = document.querySelectorAll('.card.featured, .mini-card');
+    
+    projectCards.forEach(card => {
+        try {
+            const link = card.querySelector('a');
+            if (link) {
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'A') {
+                        e.preventDefault();
+                        link.click();
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error initializing project card:', error);
+        }
+    });
+}
+
+// Utility function for safe redirects (keeping your original)
+function redirectToSite(url) {
+    try {
+        if (url && typeof url === 'string') {
+            window.location.href = url;
+        }
+    } catch (error) {
+        console.error('Error redirecting:', error);
+    }
+}
+</script>
+
+{% include 'messages.html' %}
 {% endblock %}

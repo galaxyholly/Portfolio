@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Blog{% endblock %}</title>
+
+    {% load static %}
+
+    <style>
+        
+        /* Global overscroll fix - applies to all pages */
+        html, body {
+            overscroll-behavior: none;
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="{% static 'css/basestyle.css' %}?v={% now 'U' %}">
+    <!-- Custom CSS -->
+    {% block extra_css %}{% endblock %}
+
+</head>
+<body>
+    <!-- Include navbar -->
+    {% include 'nav.html' %}
+    
+    <!-- Main content -->
+    <main class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <p>© 2025 Holly Harrison • Full Stack Developer • Built with Django, Python & JavaScript</p>
+        </div>
+    </footer>
+    
+    <!-- Custom JS -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block extra_css %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'blog/blogindex.css' %}?v={% now 'U' %}">
+<!-- Add this line to test -->
+{% endblock extra_css %}  <!-- ← Change this too -->
+
+{% block content %}
+<div class="blog-layout">
+    
+    <!-- Replace your current sidebar section with this -->
+    <div class="search-filter-container">
+        <div class="search-filter-bar">
+            <div class="search-section">
+                <form class="search-form" id="search-form" method="GET" action="{% url 'blog:blog_search' %}">
+                    <input type="text" class="search-input" placeholder="Search posts..." 
+                        name="search" id="search-input" value="{{ request.GET.search }}">
+                </form>
+                <button id="clear-search" class="clear-search-btn" style="display: none;">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+
+            <div id="search-status" class="search-status"></div>
+
+            <div class="filter-pills">
+                <span class="pill active" data-category="">All</span>
+                <span class="pill" data-category="project">Project</span>
+                <span class="pill" data-category="thoughts">Thoughts</span>
+                <span class="pill" data-category="stories">Stories</span>
+                <span class="pill" data-category="career">Career</span>
+                <span class="pill" data-category="tech">Tech</span>
+            </div>
+        </div>
+
+    
+</div>
+
+    <!-- Main content area -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        
+
+        <!-- Featured Section (populated by your JS) -->
+        <section class="featured-section">
+            <h2 class="section-title">Featured Posts</h2>
+            <div id="featured">
+                <!-- Your JavaScript will populate this -->
+            </div>
+        </section>
+
+        <!-- Posts Section (populated by your JS) -->
+        <section class="posts-section">
+            <h2 class="section-title">All Posts</h2>
+            <div id="post-list" class="posts-grid">
+                <!-- Your JavaScript will populate this -->
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Create Post Button -->
+{% if user.is_staff %}
+<a href="{% url 'blog:blog_form' %}" class="create-btn" title="Create New Post">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 5v14M5 12h14"></path>
+    </svg>
+</a>
+{% endif %}
+
+<script src="{% static 'blog/index.js' %}?v={% now 'U' %}"></script>
+{% include 'messages.html' %}
+{% endblock %}

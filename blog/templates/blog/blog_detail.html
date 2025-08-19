@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block extra_css %}
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'blog/blogdetail.css' %}?v={% now 'U' %}">
+<!-- Add this line to test -->
+{% endblock extra_css %}
+
+{% block content %}
+{% load bleach_tags %}
+
+<div class="blog-detail-container">
+    <!-- Main blog post -->
+    <div class="blog-post-card">
+        <div class="blog-post-header">
+            <h1 class="blog-post-title">{{ post.title|bleach }}</h1>
+            
+            <!-- Tags Section - moved to top -->
+            {% if post.tags.all %}
+            <div class="blog-post-tags-top">
+                {% for tag in post.tags.all %}
+                <span class="tag-pill">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Featured Image Section -->
+        {% if post.image %}
+        <div class="blog-post-image">
+            <div class="image-container">
+                <img src="{{ post.image.url }}" alt="{{ post.title }}" class="featured-image" onload="resizeImage(this)">
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="blog-post-content">
+            {{ post.content|bleach }}
+        </div>
+        
+        <!-- Bottom meta section with author, date, and edit button -->
+        <div class="blog-post-footer">
+            <div class="footer-meta">
+                <span class="meta-text">By {{ post.author|default:"Anonymous" }}</span>
+                <span class="meta-divider">•</span>
+                <span class="meta-text">{{ post.pub_date|date:"F j, Y" }}</span>
+                {% if post.category %}
+                <span class="meta-divider">•</span>
+                <span class="meta-text">{{ post.category }}</span>
+                {% endif %}
+            </div>
+            {% if user.is_authenticated and user == post.author or user.is_staff %}
+            <a href="{% url 'blog:edit_post' post.id %}" class="edit-btn-footer">
+                ✏️ Edit
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Comments sidebar -->
+    <div class="comments-sidebar">
+        <div class="comments-header">
+            <h3 class="comments-title">
+                Comments 
+                <span class="comments-count">{{ comments|length }}</span>
+            </h3>
+        </div>
+        
+        <div class="comments-body">
+            <!-- Comment form -->
+            {% if user.is_authenticated %}
+            <div class="comment-form-section">
+                <h6 class="comment-form-title">Leave a comment</h6>
+                <form method="post">
+                    {% csrf_token %}
+                    <textarea name="{{ form.comment_text.name }}" 
+                            id="{{ form.comment_text.id_for_label }}" 
+                            class="comment-textarea"
+                            placeholder="Share your thoughts..."
+                            required></textarea>
+                    <button type="submit" class="comment-submit-btn">
+                        Submit
+                    </button>
+                    <div style="clear: both;"></div>
+                </form>
+            </div>
+            {% else %}
+            <div class="login-prompt">
+                <p>🔐 <a href="{% url 'registration:login' %}" class="login-link">Login</a> to join the conversation</p>
+            </div>
+            {% endif %}
+
+            <!-- Comments list -->
+            <div class="comments-list">
+                {% if comments %}
+                    {% for comment in comments %}
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="comment-author">{{ comment.comment_author }}</span>
+                            <small class="comment-date">{{ comment.pub_date|date:"M j" }}</small>
+                        </div>
+                        <p class="comment-text">{{ comment.comment_text }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-comments">
+                        <p>No comments yet. Be the first to share your thoughts!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function resizeImage(img) {
+    const container = img.parentElement;
+    const maxWidth = container.clientWidth;
+    const maxHeight = 400; // Maximum height in pixels
+    
+    // Get original image dimensions
+    const originalWidth = img.naturalWidth;
+    const originalHeight = img.naturalHeight;
+    
+    // Calculate aspect ratio
+    const aspectRatio = originalWidth / originalHeight;
+    
+    let newWidth, newHeight;
+    
+    // Determine if we should constrain by width or height
+    if (originalWidth / maxWidth > originalHeight / maxHeight) {
+        // Constrain by width
+        newWidth = Math.min(maxWidth, originalWidth);
+        newHeight = newWidth / aspectRatio;
+    } else {
+        // Constrain by height
+        newHeight = Math.min(maxHeight, originalHeight);
+        newWidth = newHeight * aspectRatio;
+    }
+    
+    // Apply the calculated dimensions
+    img.style.width = newWidth + 'px';
+    img.style.height = newHeight + 'px';
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    
+    // Center the image if it's smaller than the container
+    if (newWidth < maxWidth) {
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+    }
+}
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    const images = document.querySelectorAll('.featured-image');
+    images.forEach(img => {
+        if (img.complete) {
+            resizeImage(img);
+        }
+    });
+});
+</script>
+
+{% include 'messages.html' %}
+{% endblock %}

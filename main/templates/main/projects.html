@@ -1,0 +1,135 @@
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'main/home.css' %}?v={% now 'U' %}">
+<link rel="stylesheet" href="{% static 'main/project.css' %}?v={% now 'U' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Project Showcase -->
+<div class="project-showcase">
+  <!-- Dashboard Card (Top, Full Width) -->
+  <div class="showcase-card dashboard-card" data-node="dashboard">
+    <div class="card-header">
+      <h3>Live Dashboard</h3>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span>Live</span>
+      </div>
+    </div>
+    <div class="dashboard-frame">
+      <iframe
+        src="https://bot.holly-portfolio.com/dashboard"
+        title="Live Project Dashboard"
+        loading="lazy"
+      ></iframe>
+    </div>
+  </div>
+
+  <!-- Architecture Card (Row 2, Left - 1/2 width) -->
+  <div class="showcase-card image-card" data-node="image">
+    <div class="card-header">
+      <h3>Architecture</h3>
+    </div>
+    <div class="image-frame">
+      <img src="{% static 'img/scalable-architecture.png' %}" alt="Architecture Diagram" />
+    </div>
+  </div>
+
+  <!-- Description Card (Row 2, Right - 1/2 width) -->
+  <div class="showcase-card description-card" data-node="description">
+    <div class="card-header">
+      <h3>Project Overview</h3>
+    </div>
+    <div class="card-content">
+      <div class="project-description">
+        <p>This is a high-performance distributed translation microservice that demonstrates advanced systems architecture and real-time resource management using Python multiprocessing. Built as a Discord bot with German-to-English translation capabilities, the system showcases sophisticated distributed computing principles optimized for resource-constrained environments.</p>
+        
+        <p>The architecture features a multi-process worker system that dynamically spawns translation workers across multiple CPU cores with intelligent load balancing. Each worker process runs in complete isolation with CPU core affinity for optimal performance, while an advanced queue management system handles task distribution and overflow protection to prevent system overload.</p>
+        
+        <p>Real-time monitoring capabilities include live CPU and RAM usage tracking, queue depth monitoring, and response time analytics displayed through a responsive web dashboard. The system implements adaptive scaling that automatically creates and destroys workers based on current system load and demand, ensuring efficient resource utilization while maintaining service availability.</p>
+        
+        <p>The project emphasizes fault tolerance with comprehensive error handling, inter-process communication through multiprocessing pipes, and graceful degradation under high load conditions. Resource-aware scaling prevents system overload by monitoring CPU usage per core and overall RAM consumption, automatically rejecting requests when thresholds are exceeded.</p>
+        
+        <p>Technical highlights include process isolation for stability, async/await patterns for concurrent operations, RESTful monitoring APIs with JSON endpoints, and CPU core affinity optimization. The system is specifically designed to run efficiently on resource-constrained hardware like Raspberry Pi devices with 2+ GB RAM, making it ideal for edge computing applications or distributed mesh networks where computational resources are limited.</p>
+        
+        <p>The live dashboard provides real-time visualization of system metrics including per-core CPU usage, memory consumption, active translation queues, job processing statistics, and average response times. The entire system demonstrates production-ready distributed systems engineering with a focus on scalability, reliability, and performance optimization.</p>
+    </div>
+    </div>
+  </div>
+
+  <!-- Tech Stack Card (Row 3, Full Width - Thin) -->
+  <div class="showcase-card tech-card" data-node="tech">
+    <div class="card-header">
+      <h3>Technologies</h3>
+    </div>
+    <div class="card-content">
+      <div class="tech-badges">
+        <span class="tech-badge">Python</span>
+        <span class="tech-badge">Django</span>
+        <span class="tech-badge">JavaScript</span>
+        <span class="tech-badge">React</span>
+        <span class="tech-badge">PostgreSQL</span>
+        <span class="tech-badge">AWS</span>
+        <span class="tech-badge">Docker</span>
+        <span class="tech-badge">Redis</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bubble Navigation -->
+<div class="bubble-nav">
+  <div class="nav-line"></div>
+  
+  <div class="nav-bubble github-bubble">
+    <a href="https://github.com/yourusername/your-repo" class="bubble-btn" target="_blank" rel="noopener noreferrer">
+      <svg class="bubble-icon" viewBox="0 0 24 24">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+      </svg>
+    </a>
+    <div class="bubble-tooltip">View on GitHub</div>
+  </div>
+  
+  <div class="nav-bubble home-bubble">
+    <a href="{% url 'main:home' %}" class="bubble-btn">
+      <svg class="bubble-icon" viewBox="0 0 24 24">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+    </a>
+    <div class="bubble-tooltip">Back to Home</div>
+  </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const imageFrame = document.querySelector('.image-frame');
+    const img = imageFrame.querySelector('img');
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'image-modal';
+    modal.innerHTML = `<img src="${img.src}" alt="${img.alt}">`;
+    document.body.appendChild(modal);
+    
+    // Open modal on click
+    imageFrame.addEventListener('click', () => {
+        modal.style.display = 'flex';
+    });
+    
+    // Close modal on click
+    modal.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

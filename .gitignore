@@ -37,4 +37,38 @@
 ehthumbs.db
 Thumbs.db
 
+# Sensitive files #
+###################
 /portfolio/settings.py
+settings.py
+
+# Django
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+staticfiles/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+django.log
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Sensitive files
+secrets.py
+local_settings.py
