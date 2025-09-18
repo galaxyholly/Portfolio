@@ -18,18 +18,16 @@ from django.db import transaction, IntegrityError
 from .models import BlogPost, Comment, Tag
 from .forms import BlogPostForm, BlogPostCommentForm
 
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
-
 @staff_member_required
+@ratelimit(key='ip', rate='5/m', method='GET', block=True)
 def post_blog(request):
-    """
-    Handle blog post creation.
-    
-    GET: Display empty blog post form
-    POST: Process form submission and create new blog post
-    """
+    """Handle blog post creation."""
     if request.method == "POST":
         logger.info("Processing blog post creation request")
         
@@ -37,33 +35,27 @@ def post_blog(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Save post but don't commit to database yet
                     post = form.save(commit=False)
-                    # Set the author to current logged-in user
                     post.author = request.user
-                    # Save to database first (this gives the post an ID)
                     post.save()
-                    
-                    # Now call the form's save method to handle tags
-                    form.save()
+                    form.save_m2m()  # Save the many-to-many relationships
                     
                     logger.info(f"Successfully created blog post: {post.title} (ID: {post.id})")
                     messages.success(request, "Post created successfully!")
                     return HttpResponseRedirect(reverse("blog:index"))
                     
-            except (IntegrityError, Exception) as e:
+            except Exception as e:
                 logger.error(f"Error creating blog post: {e}")
                 messages.error(request, "Error creating post. Please try again.")
         else:
             logger.warning(f"Blog post form validation failed: {form.errors}")
             messages.error(request, "Please correct the errors below.")
     else:
-        # Display empty form for GET requests
         form = BlogPostForm()
     
     return render(request, 'blog/blog_form.html', {'form': form})
 
-
+@ratelimit(key='ip', rate='120/m', method='GET', block=True)
 def blog_post_view(request):
     """
     Display paginated list of blog posts.
@@ -137,22 +129,14 @@ def blog_post_view(request):
             messages.error(request, "Error loading blog posts.")
             return render(request, 'blog/blog_index.html', {'posts': []})
 
-
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def detail_page(request, pk):
-    """
-    Display blog post detail page with comments and comment form.
-    
-    GET: Show blog post, existing comments, and empty comment form
-    POST: Process new comment submission
-    """
-    # Get the blog post or return 404 if not found
     post = get_object_or_404(
         BlogPost.objects.prefetch_related('tags', 'comments__comment_author'), 
         pk=pk
     )
     
     if request.method == "POST":
-        # Handle comment submission
         if not request.user.is_authenticated:
             messages.error(request, "You must be logged in to comment.")
             return redirect('blog:blog_detail', pk=pk)
@@ -161,12 +145,9 @@ def detail_page(request, pk):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Save comment but don't commit to database yet
                     comment = form.save(commit=False)
-                    # Set comment author and associated blog post
                     comment.comment_author = request.user
                     comment.blog_post = post
-                    # Save comment to database
                     comment.save()
                     
                     logger.info(f"Comment added to post {post.id} by {request.user.username}")
@@ -176,22 +157,28 @@ def detail_page(request, pk):
                 logger.error(f"Error saving comment: {e}")
                 messages.error(request, "Error saving comment. Please try again.")
                 
-            # Redirect to same page to prevent resubmission on refresh
             return HttpResponseRedirect(reverse('blog:blog_detail', args=[post.id]))
         else:
-            messages.error(request, "Please correct the errors in your comment.")
-    else:
-        # GET request - display post, comments, and empty form
-        comments = post.comments.all()
-        form = BlogPostCommentForm(initial={'blog_post': post})
-        
-        return render(request, 'blog/blog_detail.html', {
-            'form': form, 
-            'post': post, 
-            'comments': comments
-        })
 
+            # Add this return statement:
+            comments = post.comments.all()
+            return render(request, 'blog/blog_detail.html', {
+                'form': form,  # This will contain the errors
+                'post': post, 
+                'comments': comments
+            })
+    
+    # GET request path
+    comments = post.comments.all()
+    form = BlogPostCommentForm(initial={'blog_post': post})
+    
+    return render(request, 'blog/blog_detail.html', {
+        'form': form, 
+        'post': post, 
+        'comments': comments
+    })
 
+@ratelimit(key='ip', rate='200/m', method='GET', block=True)
 def blog_post_search(request):
     """
     Handle blog post search and filtering via AJAX.
@@ -278,53 +265,89 @@ def blog_post_search(request):
             'total_results': 0,
         }, status=500)
 
-
+@ratelimit(key='ip', rate='10/m', method='GET', block=True)
 @staff_member_required
 def edit_post(request, pk):
-    """
-    Handle blog post editing.
-    
-    Only allows editing by:
-    - The original post author
-    - Staff/admin users
-    
-    GET: Display pre-filled edit form
-    POST: Process form submission and update post
-    """
-    # Get the blog post or return 404 if not found
+    """Handle blog post editing with debugging."""
     post = get_object_or_404(BlogPost, pk=pk)
     
-    # Check if user has permission to edit this post
+    print(f"=== EDIT POST DEBUG - Post ID: {pk} ===")
+    print(f"Post exists: {post}")
+    print(f"Post title: {post.title}")
+    print(f"Post tags: {[tag.name for tag in post.tags.all()]}")
+    
+    # Check permissions
     user_is_author = post.author == request.user
     user_is_staff = request.user.is_staff
     
+    print(f"User: {request.user}")
+    print(f"Is author: {user_is_author}")
+    print(f"Is staff: {user_is_staff}")
+    
     if not user_is_author and not user_is_staff:
-        logger.warning(f"Unauthorized edit attempt on post {pk} by {request.user.username}")
+        print("PERMISSION DENIED")
         messages.error(request, "You don't have permission to edit this post.")
         return redirect('blog:blog_detail', pk=post.pk)
     
     if request.method == 'POST':
-        form = BlogPostForm(request.POST, request.FILES, instance=post)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    # Save updated post to database (this will also handle tags)
-                    form.save()
+        print("=== POST REQUEST DEBUG ===")
+        print(f"POST data: {dict(request.POST)}")
+        print(f"FILES data: {dict(request.FILES)}")
+        
+        try:
+            form = BlogPostForm(request.POST, request.FILES, instance=post)
+            print(f"Form created successfully")
+            
+            print(f"Form is valid: {form.is_valid()}")
+            
+            if not form.is_valid():
+                print(f"Form errors: {form.errors}")
+                print(f"Non-field errors: {form.non_field_errors()}")
+                messages.error(request, "Please correct the errors below.")
+            else:
+                print("Form is valid, attempting to save...")
+                
+                try:
+                    with transaction.atomic():
+                        print("Starting transaction...")
+                        updated_post = form.save()
+                        print(f"Form saved successfully: {updated_post}")
+                        print(f"Updated post tags: {[tag.name for tag in updated_post.tags.all()]}")
+                        
+                        logger.info(f"Post {post.id} updated by {request.user.username}")
+                        messages.success(request, "Post updated successfully!")
+                        return redirect('blog:blog_detail', pk=post.pk)
+                        
+                except Exception as e:
+                    print(f"ERROR during save: {e}")
+                    print(f"Exception type: {type(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    logger.error(f"Error updating post {pk}: {e}")
+                    messages.error(request, "Error updating post. Please try again.")
                     
-                    logger.info(f"Post {post.id} updated by {request.user.username}")
-                    messages.success(request, "Post updated successfully!")
-                    return redirect('blog:blog_detail', pk=post.pk)
-                    
-            except Exception as e:
-                logger.error(f"Error updating post {pk}: {e}")
-                messages.error(request, "Error updating post. Please try again.")
-        else:
-            messages.error(request, "Please correct the errors below.")
+        except Exception as e:
+            print(f"ERROR creating form: {e}")
+            print(f"Exception type: {type(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, "Error loading form. Please try again.")
+            
     else:
-        # Display pre-filled form for GET requests
-        form = BlogPostForm(instance=post)
+        print("=== GET REQUEST DEBUG ===")
+        try:
+            form = BlogPostForm(instance=post)
+            print(f"Form created for GET request")
+            print(f"Form initial data: {form.initial}")
+            print(f"Tags field initial: {form.fields['tags'].initial}")
+        except Exception as e:
+            print(f"ERROR creating form for GET: {e}")
+            import traceback
+            traceback.print_exc()
     
-    return render(request, 'blog/blog_edit.html', {
+    print("=== RENDERING TEMPLATE ===")
+    return render(request, 'blog/blog_form.html', {
         'form': form,
         'post': post
     })
+    

@@ -11,6 +11,9 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from ckeditor.fields import RichTextField
 import datetime
+from django.utils.html import strip_tags
+from django.utils.text import Truncator
+import html
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +177,17 @@ class BlogPost(models.Model):
         except Exception as e:
             logger.error(f"Error getting primary category for post {self.pk}: {e}")
             return 'Other'
+        
+    def get_clean_excerpt(self, word_count=26):
+        """Return clean, truncated content without HTML tags or entities."""
+        if not self.content:
+            return ''
+        # Strip HTML tags
+        clean_content = strip_tags(self.content)
+        # Decode HTML entities (like &amp;, &lt;, etc.)
+        clean_content = html.unescape(clean_content)
+        # Truncate to specified word count
+        return Truncator(clean_content).words(word_count, truncate='...')
 
 
 class Comment(models.Model):

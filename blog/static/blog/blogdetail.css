@@ -374,6 +374,7 @@ body {
     padding: 15px;
     margin-bottom: 12px;
     border-radius: 12px;
+    margin-top: 2px;
     border: 1px solid var(--border-light);
     transition: all 0.3s ease;
 }
@@ -559,12 +560,12 @@ body {
     outline-offset: 2px;
 }
 
-/* Loading state for images */
+/* Loading state for images
 .featured-image {
-    opacity: 0;
+    opacity: 1;
     transition: opacity 0.3s ease;
 }
 
 .featured-image.loaded {
     opacity: 1;
-}
+} */

@@ -67,246 +67,313 @@ function stripHtmlTags(html) {
     }
 }
 
-// Helper function to determine category with error handling
-function getPostCategory(postData) {
+// Updated function to batch DOM operations and improve truncation timing
+function addPostsToDOM(posts, container) {
     try {
-        if (!postData) return 'post';
+        if (!posts || !container) return;
         
-        // Try category field first
-        if (postData.category && typeof postData.category === 'string' && postData.category.trim()) {
-            return postData.category.trim();
-        }
+        console.log('🚀 addPostsToDOM called with:', {
+            postsCount: posts.length,
+            containerType: container.id
+        });
         
-        // Try first tag
-        if (postData.tags && typeof postData.tags === 'string' && postData.tags.trim()) {
-            const firstTag = postData.tags.split(',')[0]?.trim();
-            if (firstTag) {
-                return firstTag;
+        // Create and add all post elements first, but hide them during truncation
+        const postElements = [];
+        posts.forEach((post, index) => {
+            try {
+                const postElement = createRegularPost(post);
+                
+                // Hide the content temporarily to prevent flash
+                const content = postElement.querySelector('.post span');
+                if (content) {
+                    content.style.visibility = 'hidden';
+                }
+                
+                container.appendChild(postElement);
+                postElements.push(postElement);
+            } catch (error) {
+                logError('addPostsToDOM - creating post', error, { post });
             }
-        }
+        });
         
-        // Fallback to generic
-        return 'post';
+        // Add ghost cards to establish final layout
+        addGhostCards();
+        
+        // Wait for layout to settle, then truncate and show
+        setTimeout(() => {
+            container.offsetHeight; // Force layout
+            
+            postElements.forEach((postElement, index) => {
+                try {
+                    // Truncate while hidden
+                    truncateRegularPostContent(postElement);
+                    
+                    // Now show the content
+                    const content = postElement.querySelector('.post span');
+                    if (content) {
+                        content.style.visibility = 'visible';
+                    }
+                    
+                    console.log(`✅ Truncated and revealed post ${index + 1}/${postElements.length}`);
+                } catch (error) {
+                    logError('addPostsToDOM - truncating post', error, { postElement });
+                }
+            });
+        }, 50);
+        
     } catch (error) {
-        logError('getPostCategory', error, { postData });
-        return 'post';
+        logError('addPostsToDOM', error, { posts, container });
     }
 }
 
-// Helper function for display text with error handling
-function getCategoryDisplayText(category) {
+async function loadImages() {
     try {
-        const displayNames = {
-            'tech': 'Tech',
-            'thoughts': 'Thoughts', 
-            'stories': 'Stories',
-            'career': 'Career',
-            'project': 'Project',
-            'post': 'Post'
-        };
+        console.log('loadImages called', { isLoading, page_num });
         
-        if (!category || typeof category !== 'string') {
-            return 'Post';
+        if (isLoading) return;
+        
+        isLoading = true;
+        
+        let page_url = "?page=" + page_num;
+        console.log('Fetching:', page_url);
+        
+        const response = await fetch(page_url, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        return displayNames[category.toLowerCase()] || 
-               category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-    } catch (error) {
-        logError('getCategoryDisplayText', error, { category });
-        return 'Post';
-    }
-}
-
-// Enhanced ghost cards function with error handling
-function addGhostCards() {
-    try {
-        const postList = document.getElementById('post-list');
-        if (!postList) {
-            console.warn('Post list container not found');
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (!data.has_next && page_num > 1) {
+            console.log('No more pages available');
+            isLoading = false;
             return;
         }
         
-        const posts = postList.children;
-        const postsCount = posts.length;
-        
-        // Remove any existing ghost cards first
-        const existingGhosts = postList.querySelectorAll('.ghost-card');
-        existingGhosts.forEach(ghost => {
-            try {
-                ghost.remove();
-            } catch (error) {
-                logError('addGhostCards - removing ghost', error);
-            }
-        });
-        
-        // Calculate how many cards per row
-        const containerWidth = postList.offsetWidth;
-        if (containerWidth <= 0) return;
-        
-        const cardsPerRow = Math.floor(containerWidth / 350);
-        
-        // Calculate how many ghost cards needed
-        const remainder = postsCount % cardsPerRow;
-        if (remainder !== 0 && cardsPerRow > 1) {
-            const ghostsNeeded = cardsPerRow - remainder;
-            
-            for (let i = 0; i < ghostsNeeded; i++) {
-                try {
-                    const ghostCard = document.createElement('div');
-                    ghostCard.className = 'ghost-card';
-                    ghostCard.style.visibility = 'hidden';
-                    ghostCard.style.minHeight = '280px';
-                    ghostCard.style.minWidth = '350px';
-                    postList.appendChild(ghostCard);
-                } catch (error) {
-                    logError('addGhostCards - creating ghost card', error, { i });
-                }
-            }
-        }
-    } catch (error) {
-        logError('addGhostCards', error);
-    }
-}
-
-// Enhanced featured post creation with error handling
-function createFeaturedPost(postData, index) {
-    try {
-        if (!postData) {
-            throw new Error('Post data is required');
-        }
-        
-        const featured = document.getElementById("featured");
-        if (!featured) {
-            throw new Error('Featured container not found');
-        }
-        
-        const featured_post_wrapper = document.createElement('div');
-        featured_post_wrapper.className = 'featured-post-wrapper';
-        featured_post_wrapper.style.cursor = 'pointer';
-        
-        // Add click handler with error handling
-        featured_post_wrapper.addEventListener("click", function(e) {
-            try {
-                if (e.target.tagName === 'BUTTON') return;
-                if (postData.url) {
-                    window.location.href = postData.url;
-                }
-            } catch (error) {
-                logError('featured post click handler', error, { postData });
-            }
-        });
-        
-        // Create image section with thumbnail support
-        const featured_post_image = document.createElement('div');
-        featured_post_image.className = 'featured-post-image';
-        
-        try {
-            if (postData.thumbnail || postData.image) {
-                const img = document.createElement('img');
-                img.src = index === 0 ? 
-                    (postData.thumbnail || postData.image) : 
-                    (postData.thumbnail_small || postData.thumbnail || postData.image);
-                img.alt = stripHtmlTags(postData.title) || 'Featured post image';
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.objectFit = 'cover';
-                img.style.objectPosition = 'center';
+        // Handle first page - featured posts
+        if (page_num === 1 && data.blog_posts && Array.isArray(data.blog_posts) && data.blog_posts.length > 0) {
+            const featured = document.getElementById("featured");
+            if (featured) {
+                featured.innerHTML = '';
                 
-                // Add error handling for image loading
-                img.onerror = function() {
-                    console.warn('Failed to load featured post image:', img.src);
-                    featured_post_image.textContent = getCategoryDisplayText(getPostCategory(postData));
-                };
-                
-                featured_post_image.appendChild(img);
-            } else {
-                featured_post_image.textContent = getCategoryDisplayText(getPostCategory(postData));
-            }
-        } catch (error) {
-            logError('featured post image creation', error, { postData, index });
-            featured_post_image.textContent = getCategoryDisplayText(getPostCategory(postData));
-        }
-        
-        const featured_post_content_wrapper = document.createElement('div');
-        featured_post_content_wrapper.className = 'featured-post-content-wrapper';
-        
-        // Create content elements with error handling
-        try {
-            const featured_post_title = document.createElement('div');
-            featured_post_title.className = 'featured-post-title';
-            const featured_post_title_span = document.createElement('span');
-            featured_post_title_span.className = "featured-post-title-span";
-            featured_post_title_span.textContent = stripHtmlTags(postData.title) || 'Untitled Post';
-            featured_post_title.appendChild(featured_post_title_span);
-            
-            // Tags section
-            const featured_post_tags = document.createElement('div');
-            featured_post_tags.className = 'featured-post-tags';
-            
-            if (postData.tags && typeof postData.tags === 'string') {
-                const tagsList = postData.tags.split(', ').filter(tag => tag && tag.trim());
-                tagsList.forEach(tagName => {
+                // Create featured posts - ONLY take first 3 posts
+                const featuredPosts = data.blog_posts.slice(0, 3);
+                featuredPosts.forEach((post, index) => {
                     try {
-                        const tag = document.createElement('div');
-                        tag.className = 'tag-example post-tag';
-                        tag.textContent = tagName.trim();
-                        tag.style.cursor = 'pointer';
-                        tag.addEventListener('click', function(e) {
-                            try {
-                                e.stopPropagation();
-                                filterByTag(tagName.trim());
-                            } catch (error) {
-                                logError('tag click handler', error, { tagName });
-                            }
-                        });
-                        featured_post_tags.appendChild(tag);
+                        createFeaturedPost(post, index);
                     } catch (error) {
-                        logError('featured post tag creation', error, { tagName });
+                        logError('loadImages - creating featured post', error, { post, index });
                     }
                 });
+                
+                // Add remaining posts to regular posts section
+                if (data.blog_posts.length > 3) {
+                    const post_list = document.getElementById("post-list");
+                    if (post_list) {
+                        const remainingPosts = data.blog_posts.slice(3);
+                        remainingPosts.forEach(post => {
+                            try {
+                                const regularPost = createRegularPost(post);
+                                post_list.appendChild(regularPost);
+                            } catch (error) {
+                                logError('loadImages - creating regular post', error, { post });
+                            }
+                        });
+                        
+                        addGhostCards();
+                    }
+                }
             }
-            
-            // Content section
-            const featured_post_content = document.createElement('div');
-            featured_post_content.className = 'featured-post-content';
-            const featured_post_content_span = document.createElement('span');
-            featured_post_content_span.className = "featured-post-content-span";
-            featured_post_content_span.textContent = stripHtmlTags(postData.content) || '';
-            featured_post_content.appendChild(featured_post_content_span);
-            
-            // Bottom section
-            const featured_post_bottom = document.createElement('div');
-            featured_post_bottom.className = 'featured-post-bottom';
-            const featured_post_bottom_span = document.createElement('span');
-            featured_post_bottom_span.className = "featured-post-bottom-span";
-            featured_post_bottom_span.textContent = `${postData.author || 'Anonymous'} • ${postData.pub_date || ''}`;
-            featured_post_bottom.appendChild(featured_post_bottom_span);
-            
-            // Assemble content wrapper
-            featured_post_content_wrapper.appendChild(featured_post_title);
-            featured_post_content_wrapper.appendChild(featured_post_tags);
-            featured_post_content_wrapper.appendChild(featured_post_content);
-            featured_post_content_wrapper.appendChild(featured_post_bottom);
-            
-        } catch (error) {
-            logError('featured post content creation', error, { postData });
-            // Create minimal fallback content
-            const fallback = document.createElement('div');
-            fallback.textContent = 'Error loading post content';
-            featured_post_content_wrapper.appendChild(fallback);
+        }
+        // Handle regular posts for subsequent pages
+        else if (page_num > 1 && data.blog_posts && Array.isArray(data.blog_posts) && data.blog_posts.length > 0) {
+            const post_list = document.getElementById("post-list");
+            if (post_list) {
+                data.blog_posts.forEach(post => {
+                    try {
+                        const regularPost = createRegularPost(post);
+                        post_list.appendChild(regularPost);
+                    } catch (error) {
+                        logError('loadImages - appending regular post', error, { post });
+                    }
+                });
+                
+                addGhostCards();
+            }
         }
         
-        // Assemble main wrapper
-        featured_post_wrapper.appendChild(featured_post_image);
-        featured_post_wrapper.appendChild(featured_post_content_wrapper);
-        
-        // Add to featured container
-        featured.appendChild(featured_post_wrapper);
+        page_num += 1;
         
     } catch (error) {
-        logError('createFeaturedPost', error, { postData, index });
-        showErrorMessage('Error creating featured post');
+        logError('loadImages', error, { page_num });
+        showErrorMessage('Error loading blog posts. Please try refreshing the page.');
+    } finally {
+        isLoading = false;
+        
+        // Check if we need to load more content automatically
+        setTimeout(() => {
+            try {
+                checkIfMoreContentNeeded();
+            } catch (error) {
+                logError('loadImages - checkIfMoreContentNeeded', error);
+            }
+        }, 100);
     }
+}
+// Enhanced featured post creation with error handling and simplified DOM structure
+function createFeaturedPost(postData, index) {
+   try {
+       if (!postData) {
+           throw new Error('Post data is required');
+       }
+       
+       const featured = document.getElementById("featured"); // inits a var for the featured section containing div
+       if (!featured) {
+           throw new Error('Featured container not found');
+       }
+       
+       const featured_post_wrapper = document.createElement('div');
+       featured_post_wrapper.className = 'featured-post-wrapper'; // Wraps the whole card
+       featured_post_wrapper.style.cursor = 'pointer';
+       
+       // Add click handler
+       featured_post_wrapper.addEventListener("click", function(e) {
+           try {
+               if (e.target.tagName === 'BUTTON') return;
+               if (postData.url) {
+                   window.location.href = postData.url;
+               }
+           } catch (error) {
+               logError('featured post click handler', error, { postData });
+           }
+       });
+       
+       // Create image section with AUTOMATIC SIZING
+       const featured_post_image = document.createElement('div');
+       featured_post_image.className = 'featured-post-image';
+       
+       try {
+           if (postData.thumbnail || postData.image) {
+               const img = document.createElement('img');
+               img.src = index === 0 ? 
+                   (postData.thumbnail || postData.image) : 
+                   (postData.thumbnail_small || postData.thumbnail || postData.image);
+               img.alt = stripHtmlTags(postData.title) || 'Featured post image';
+               
+               // FORCE CONSISTENT IMAGE SIZING
+               img.style.cssText = `
+                   position: absolute;
+                   top: 0;
+                   left: 0;
+                   width: 100%;
+                   height: 100%;
+                   object-fit: cover;
+                   object-position: center;
+               `;
+               
+               // Error handling - fallback to category placeholder
+               img.onerror = function() {
+                   console.warn('Failed to load featured post image:', img.src);
+                   featured_post_image.innerHTML = '';
+                   featured_post_image.style.background = 'linear-gradient(135deg, #ABC09F, #9aab8e)';
+                   featured_post_image.textContent = getCategoryDisplayText(getPostCategory(postData));
+               };
+               
+               featured_post_image.style.background = 'none';
+               featured_post_image.appendChild(img);
+           } else {
+               // Fallback to category placeholder
+               featured_post_image.style.background = 'linear-gradient(135deg, #ABC09F, #9aab8e)';
+               featured_post_image.textContent = getCategoryDisplayText(getPostCategory(postData));
+           }
+       } catch (error) {
+           logError('featured post image creation', error, { postData, index });
+           featured_post_image.style.background = 'linear-gradient(135deg, #ABC09F, #9aab8e)';
+           featured_post_image.textContent = getCategoryDisplayText(getPostCategory(postData));
+       }
+       
+       const featured_post_content_wrapper = document.createElement('div'); // We have image wrapper, now content wrapper
+       featured_post_content_wrapper.className = 'featured-post-content-wrapper';
+       
+       try {
+           // Title - simplified
+           const featured_post_title = document.createElement('h2');
+           featured_post_title.className = 'featured-post-title';
+           featured_post_title.textContent = stripHtmlTags(postData.title) || 'Untitled Post';
+           
+           // Tags section
+           const featured_post_tags = document.createElement('div');
+           featured_post_tags.className = 'featured-post-tags';
+           
+           if (postData.tags && typeof postData.tags === 'string') {
+               const tagsList = postData.tags.split(', ').filter(tag => tag && tag.trim());
+               tagsList.forEach(tagName => {
+                   try {
+                       const tag = document.createElement('div');
+                       tag.className = 'tag-example post-tag';
+                       tag.textContent = tagName.trim();
+                       tag.style.cursor = 'pointer';
+                       tag.addEventListener('click', function(e) {
+                           try {
+                               e.stopPropagation();
+                               filterByTag(tagName.trim());
+                           } catch (error) {
+                               logError('tag click handler', error, { tagName });
+                           }
+                       });
+                       featured_post_tags.appendChild(tag);
+                   } catch (error) {
+                       logError('featured post tag creation', error, { tagName });
+                   }
+               });
+           }
+           
+           // Content - simplified
+           const featured_post_content = document.createElement('div');
+           featured_post_content.className = 'featured-post-content';
+           
+           let content = stripHtmlTags(postData.content) || '';
+           content = content.replace(/\s+/g, ' ').trim();
+           featured_post_content.textContent = content;
+           
+           // Bottom section - simplified
+           const featured_post_bottom = document.createElement('div');
+           featured_post_bottom.className = 'featured-post-bottom';
+           featured_post_bottom.textContent = `${postData.author || 'Anonymous'} • ${postData.pub_date || ''}`;
+           
+           // Assemble content wrapper
+           featured_post_content_wrapper.appendChild(featured_post_title);
+           featured_post_content_wrapper.appendChild(featured_post_tags);
+           featured_post_content_wrapper.appendChild(featured_post_content);
+           featured_post_content_wrapper.appendChild(featured_post_bottom);
+           
+       } catch (error) {
+           logError('featured post content creation', error, { postData });
+           const fallback = document.createElement('div');
+           fallback.textContent = 'Error loading post content';
+           featured_post_content_wrapper.appendChild(fallback);
+       }
+       
+       // Assemble main wrapper
+       featured_post_wrapper.appendChild(featured_post_image);
+       featured_post_wrapper.appendChild(featured_post_content_wrapper);
+       
+       // Add to featured container
+       featured.appendChild(featured_post_wrapper);
+       
+       // Apply truncation when ready
+       waitForLayout(featured_post_wrapper, () => {
+           truncateContentToFit(featured_post_wrapper);
+       });
+       
+   } catch (error) {
+       logError('createFeaturedPost', error, { postData, index });
+       showErrorMessage('Error creating featured post');
+   }
 }
 
 // Enhanced regular post creation with error handling
@@ -455,154 +522,151 @@ function createRegularPost(postData) {
     }
 }
 
-// Enhanced filter by tag function with error handling
-function filterByTag(tagName) {
-    try {
-        if (!tagName || typeof tagName !== 'string') {
-            console.warn('Invalid tag name provided to filterByTag');
-            return;
-        }
-        
-        console.log('Filtering by tag:', tagName);
-        
-        // Clear search input
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) {
-            searchInput.value = tagName;
-        }
-        
-        // Clear filter pills
-        const filterPills = document.querySelectorAll('.pill');
-        filterPills.forEach(p => p.classList.remove('active'));
-        
-        // Set up tag search
-        currentSearchQuery = tagName;
-        currentTag = tagName;
-        isSearchMode = true;
-        
-        // Update UI
-        document.body.classList.add('search-active');
-        
-        const sectionTitle = document.querySelector('.posts-section .section-title');
-        if (sectionTitle) {
-            sectionTitle.textContent = `Posts tagged "${tagName}"`;
-        }
-        
-        // Clear content and load search results
-        const postList = document.getElementById('post-list');
-        if (postList) {
-            postList.innerHTML = '<div class="loading">🔍 Searching by tag...</div>';
-            loadSearchResults(tagName, 1);
-        }
-        
-        // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-    } catch (error) {
-        logError('filterByTag', error, { tagName });
-        showErrorMessage('Error filtering posts by tag');
+function truncateContentToFit(container) {
+  const content = container.querySelector('.featured-post-content');
+  if (!content) return;
+  
+  // Check which card this is
+  const isFirstCard = container.classList.contains('featured-post-wrapper') && 
+                     container.parentElement.children[0] === container;
+  
+  console.log(`=== TRUNCATING ${isFirstCard ? 'BIG' : 'SMALL'} CARD ===`);
+  console.log('Original text length:', content.textContent.length);
+  console.log('Content height available:', content.clientHeight);
+  
+  // Force reflow
+  container.offsetHeight;
+  
+  console.log('Content scrollHeight (needs):', content.scrollHeight);
+  console.log('Content clientHeight (has):', content.clientHeight);
+  
+  if (content.scrollHeight <= content.clientHeight) {
+    console.log('Function thinks it fits - exiting');
+    return;
+  }
+
+  console.log('Starting binary search...');
+  
+  const originalText = content.textContent;
+  let low = 0;
+  let high = originalText.length;
+  let iterations = 0;
+  
+  while (low < high) {
+    iterations++;
+    let mid = Math.floor((low + high + 1) / 2);
+    content.textContent = originalText.substring(0, mid) + '...';
+    
+    container.offsetHeight;
+    
+    console.log(`Iteration ${iterations}: trying ${mid} chars, scrollHeight: ${content.scrollHeight}`);
+    
+    if (content.scrollHeight <= content.clientHeight) {
+      low = mid;
+    } else {
+      high = mid - 1;
     }
+    
+    // Safety break for small cards
+    if (iterations > 20) {
+      console.log('Too many iterations, breaking');
+      break;
+    }
+  }
+  
+  console.log('Final length chosen:', low);
+  
+  // Word boundary cleanup
+  let finalText = originalText.substring(0, low);
+  let lastSpace = finalText.lastIndexOf(' ');
+  if (lastSpace > finalText.length * 0.8) {
+    finalText = finalText.substring(0, lastSpace);
+  }
+  
+  content.textContent = finalText + '...';
+  console.log('Final text:', content.textContent);
+  console.log('=== END ===');
 }
 
-// Enhanced loadImages function with comprehensive error handling
-async function loadImages() {
-    try {
-        console.log('loadImages called', { isLoading, page_num });
-        
-        if (isLoading) return;
-        
-        isLoading = true;
-        
-        let page_url = "?page=" + page_num;
-        console.log('Fetching:', page_url);
-        
-        const response = await fetch(page_url, {
-            headers: {'X-Requested-With': 'XMLHttpRequest'}
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Response data:', data);
-        
-        if (!data.has_next && page_num > 1) {
-            console.log('No more pages available');
-            isLoading = false;
-            return;
-        }
-        
-        // Handle first page - featured posts
-        if (page_num === 1 && data.blog_posts && Array.isArray(data.blog_posts) && data.blog_posts.length > 0) {
-            const featured = document.getElementById("featured");
-            if (featured) {
-                featured.innerHTML = '';
-                
-                // Create featured posts - ONLY take first 3 posts
-                const featuredPosts = data.blog_posts.slice(0, 3);
-                featuredPosts.forEach((post, index) => {
-                    try {
-                        createFeaturedPost(post, index);
-                    } catch (error) {
-                        logError('loadImages - creating featured post', error, { post, index });
-                    }
-                });
-                
-                // Add remaining posts to regular posts section
-                if (data.blog_posts.length > 3) {
-                    const post_list = document.getElementById("post-list");
-                    if (post_list) {
-                        const remainingPosts = data.blog_posts.slice(3);
-                        remainingPosts.forEach(post => {
-                            try {
-                                const regularPost = createRegularPost(post);
-                                post_list.appendChild(regularPost);
-                            } catch (error) {
-                                logError('loadImages - creating regular post', error, { post });
-                            }
-                        });
-                        
-                        addGhostCards();
-                    }
-                }
-            }
-        }
-        // Handle regular posts for subsequent pages
-        else if (page_num > 1 && data.blog_posts && Array.isArray(data.blog_posts) && data.blog_posts.length > 0) {
-            const post_list = document.getElementById("post-list");
-            if (post_list) {
-                data.blog_posts.forEach(post => {
-                    try {
-                        const regularPost = createRegularPost(post);
-                        post_list.appendChild(regularPost);
-                    } catch (error) {
-                        logError('loadImages - appending regular post', error, { post });
-                    }
-                });
-                
-                addGhostCards();
-            }
-        }
-        
-        page_num += 1;
-        
-    } catch (error) {
-        logError('loadImages', error, { page_num });
-        showErrorMessage('Error loading blog posts. Please try refreshing the page.');
-    } finally {
-        isLoading = false;
-        
-        // Check if we need to load more content automatically
-        setTimeout(() => {
-            try {
-                checkIfMoreContentNeeded();
-            } catch (error) {
-                logError('loadImages - checkIfMoreContentNeeded', error);
-            }
-        }, 100);
+function truncateRegularPostContent(container) {
+    const content = container.querySelector('.post span');
+    if (!content) {
+        console.log('❌ TRUNCATE: No content element found');
+        return;
     }
+    
+    console.log('=== TRUNCATING REGULAR POST ===');
+    
+    // Get the ACTUAL intended height from CSS, not the measured height
+    const computedStyle = window.getComputedStyle(content);
+    const intendedHeight = parseFloat(computedStyle.height);
+    
+    console.log('📏 Intended height from CSS:', intendedHeight);
+    
+    // Temporarily remove overflow to measure natural content size
+    const originalOverflow = content.style.overflow;
+    content.style.overflow = 'visible';
+    
+    // Force reflow
+    container.offsetHeight;
+    
+    const naturalScrollHeight = content.scrollHeight;
+    
+    console.log('📐 Natural scroll height:', naturalScrollHeight);
+    console.log('📐 Intended height:', intendedHeight);
+    
+    if (naturalScrollHeight <= intendedHeight) {
+        console.log('✅ Content fits - exiting');
+        content.style.overflow = originalOverflow;
+        return;
+    }
+    
+    console.log('🔄 Starting binary search...');
+    
+    const originalText = content.textContent;
+    let low = 0;
+    let high = originalText.length;
+    let iterations = 0;
+    
+    while (low < high) {
+        iterations++;
+        let mid = Math.floor((low + high + 1) / 2);
+        content.textContent = originalText.substring(0, mid) + '...';
+        
+        container.offsetHeight; // Force reflow
+        
+        // Compare against the intended height, not clientHeight
+        if (content.scrollHeight <= intendedHeight) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+        
+        if (iterations > 20) break;
+    }
+    
+    // Word boundary cleanup
+    let finalText = originalText.substring(0, low);
+    let lastSpace = finalText.lastIndexOf(' ');
+    if (lastSpace > finalText.length * 0.8) {
+        finalText = finalText.substring(0, lastSpace);
+    }
+    
+    content.textContent = finalText + '...';
+    
+    // Restore overflow hidden
+    content.style.overflow = originalOverflow;
+    
+    console.log('✅ Final result:', {
+        originalLength: originalText.length,
+        finalLength: finalText.length,
+        iterations,
+        intendedHeight,
+        finalScrollHeight: content.scrollHeight
+    });
+    console.log('=== END ===');
 }
+// ++++++++++++++++++++++++++++++SEARCH SECTION+++++++++++++++++++++++++++++++++++++++//
 
 // Enhanced search initialization with error handling
 document.addEventListener('DOMContentLoaded', function() {
@@ -752,6 +816,94 @@ function performSearch(query) {
     }
 }
 
+// Enhanced clear search with error handling
+function clearSearch() {
+   try {
+       const searchInput = document.getElementById('search-input');
+       const filterPills = document.querySelectorAll('.pill');
+       const searchStatus = document.getElementById('search-status');
+       
+       if (searchInput) {
+           searchInput.value = '';
+       }
+       
+       if (searchStatus) {
+           searchStatus.style.display = 'none';
+       }
+       
+       filterPills.forEach(p => {
+           try {
+               p.classList.remove('active');
+           } catch (error) {
+               logError('clearSearch - removing active class', error, { pill: p });
+           }
+       });
+       
+       const allPill = document.querySelector('.pill[data-category=""]') || document.querySelector('.pill:first-child');
+       if (allPill) {
+           try {
+               allPill.classList.add('active');
+           } catch (error) {
+               logError('clearSearch - adding active class to all pill', error);
+           }
+       }
+       
+       document.body.classList.remove('search-active');
+       
+       // Reset pagination state
+       page_num = 1;
+       currentSearchQuery = '';
+       currentTag = '';
+       isSearchMode = false;
+       window.hasNext = true;
+       window.currentPage = 1;
+       
+       // Clear and reload regular content
+       const featured = document.getElementById("featured");
+       const postList = document.getElementById('post-list');
+       
+       if (featured) featured.innerHTML = '';
+       if (postList) postList.innerHTML = '';
+       
+       // Reset section title
+       const sectionTitle = document.querySelector('.posts-section .section-title');
+       if (sectionTitle) {
+           sectionTitle.textContent = 'All Posts';
+       }
+       
+       // Scroll to top
+       window.scrollTo({ top: 0, behavior: 'smooth' });
+       
+       // Load regular content
+       loadImages();
+       
+   } catch (error) {
+       logError('clearSearch', error);
+       showErrorMessage('Error clearing search');
+   }
+}
+
+// Enhanced search results appending with error handling
+function appendSearchResults(posts) {
+   try {
+       const postList = document.getElementById('post-list');
+       if (!postList) {
+           throw new Error('Post list container not found');
+       }
+       
+       if (!Array.isArray(posts)) {
+           console.warn('Invalid posts data provided to appendSearchResults');
+           return;
+       }
+       
+       // Use improved batching for appending search results
+       addPostsToDOM(posts, postList);
+       
+   } catch (error) {
+       logError('appendSearchResults', error, { posts });
+   }
+}
+
 // Enhanced search results loading with error handling
 function loadSearchResults(query, page) {
     try {
@@ -824,73 +976,208 @@ function loadSearchResults(query, page) {
     }
 }
 
+// Helper function to determine category with error handling
+function getPostCategory(postData) {
+    try {
+        if (!postData) return 'post';
+        
+        // Try category field first
+        if (postData.category && typeof postData.category === 'string' && postData.category.trim()) {
+            return postData.category.trim();
+        }
+        
+        // Try first tag
+        if (postData.tags && typeof postData.tags === 'string' && postData.tags.trim()) {
+            const firstTag = postData.tags.split(',')[0]?.trim();
+            if (firstTag) {
+                return firstTag;
+            }
+        }
+        
+        // Fallback to generic
+        return 'post';
+    } catch (error) {
+        logError('getPostCategory', error, { postData });
+        return 'post';
+    }
+}
+
+// Helper function for display text with error handling
+function getCategoryDisplayText(category) {
+    try {
+        const displayNames = {
+            'tech': 'Tech',
+            'thoughts': 'Thoughts', 
+            'stories': 'Stories',
+            'career': 'Career',
+            'project': 'Project',
+            'post': 'Post'
+        };
+        
+        if (!category || typeof category !== 'string') {
+            return 'Post';
+        }
+        
+        return displayNames[category.toLowerCase()] || 
+               category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+    } catch (error) {
+        logError('getCategoryDisplayText', error, { category });
+        return 'Post';
+    }
+}
+
+// Enhanced ghost cards function with error handling
+function addGhostCards() {
+    try {
+        const postList = document.getElementById('post-list');
+        if (!postList) {
+            console.warn('Post list container not found');
+            return;
+        }
+        
+        const posts = postList.children;
+        const postsCount = posts.length;
+        
+        // Remove any existing ghost cards first
+        const existingGhosts = postList.querySelectorAll('.ghost-card');
+        existingGhosts.forEach(ghost => {
+            try {
+                ghost.remove();
+            } catch (error) {
+                logError('addGhostCards - removing ghost', error);
+            }
+        });
+        
+        // Calculate how many cards per row
+        const containerWidth = postList.offsetWidth;
+        if (containerWidth <= 0) return;
+        
+        const cardsPerRow = Math.floor(containerWidth / 350);
+        
+        // Calculate how many ghost cards needed
+        const remainder = postsCount % cardsPerRow;
+        if (remainder !== 0 && cardsPerRow > 1) {
+            const ghostsNeeded = cardsPerRow - remainder;
+            
+            for (let i = 0; i < ghostsNeeded; i++) {
+                try {
+                    const ghostCard = document.createElement('div');
+                    ghostCard.className = 'ghost-card';
+                    ghostCard.style.visibility = 'hidden';
+                    ghostCard.style.minHeight = '280px';
+                    ghostCard.style.minWidth = '350px';
+                    postList.appendChild(ghostCard);
+                } catch (error) {
+                    logError('addGhostCards - creating ghost card', error, { i });
+                }
+            }
+        }
+    } catch (error) {
+        logError('addGhostCards', error);
+    }
+}
+
+// Helper function to wait for proper DOM layout
+function waitForLayout(element, callback, maxAttempts = 10) {
+    let attempts = 0;
+    
+    function checkLayout() {
+        attempts++;
+        
+        if (element.offsetHeight > 0 && element.offsetWidth > 0) {
+            callback();
+        } else if (attempts < maxAttempts) {
+            requestAnimationFrame(checkLayout);
+        } else {
+            // Fallback after max attempts
+            console.warn('Layout wait timeout for element:', element);
+            callback();
+        }
+    }
+    
+    checkLayout();
+}
+
+
+// Enhanced filter by tag function with error handling
+function filterByTag(tagName) {
+    try {
+        if (!tagName || typeof tagName !== 'string') {
+            console.warn('Invalid tag name provided to filterByTag');
+            return;
+        }
+        
+        console.log('Filtering by tag:', tagName);
+        
+        // Clear search input
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = tagName;
+        }
+        
+        // Clear filter pills
+        const filterPills = document.querySelectorAll('.pill');
+        filterPills.forEach(p => p.classList.remove('active'));
+        
+        // Set up tag search
+        currentSearchQuery = tagName;
+        currentTag = tagName;
+        isSearchMode = true;
+        
+        // Update UI
+        document.body.classList.add('search-active');
+        
+        const sectionTitle = document.querySelector('.posts-section .section-title');
+        if (sectionTitle) {
+            sectionTitle.textContent = `Posts tagged "${tagName}"`;
+        }
+        
+        // Clear content and load search results
+        const postList = document.getElementById('post-list');
+        if (postList) {
+            postList.innerHTML = '<div class="loading">🔍 Searching by tag...</div>';
+            loadSearchResults(tagName, 1);
+        }
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+    } catch (error) {
+        logError('filterByTag', error, { tagName });
+        showErrorMessage('Error filtering posts by tag');
+    }
+}
+
 // Enhanced search results display with error handling
 function displaySearchResults(posts) {
-    try {
-        const postList = document.getElementById('post-list');
-        if (!postList) {
-            throw new Error('Post list container not found');
-        }
-        
-        postList.innerHTML = '';
-        
-        if (!Array.isArray(posts) || posts.length === 0) {
-            postList.innerHTML = `
-                <div class="no-results">
-                    <h3>No posts found</h3>
-                    <p>No results found. <a href="#" onclick="clearSearch()">Clear search</a> to see all posts.</p>
-                </div>
-            `;
-            return;
-        }
-        
-        posts.forEach(post => {
-            try {
-                const regularPost = createRegularPost(post);
-                postList.appendChild(regularPost);
-            } catch (error) {
-                logError('displaySearchResults - creating post', error, { post });
-            }
-        });
-        
-        addGhostCards();
-        
-    } catch (error) {
-        logError('displaySearchResults', error, { posts });
-        showSearchError();
-    }
+   try {
+       const postList = document.getElementById('post-list');
+       if (!postList) {
+           throw new Error('Post list container not found');
+       }
+       
+       postList.innerHTML = '';
+       
+       if (!Array.isArray(posts) || posts.length === 0) {
+           postList.innerHTML = `
+               <div class="no-results">
+                   <h3>No posts found</h3>
+                   <p>No results found. <a href="#" onclick="clearSearch()">Clear search</a> to see all posts.</p>
+               </div>
+           `;
+           return;
+       }
+       
+       // Use improved batching for search results
+       addPostsToDOM(posts, postList);
+       
+   } catch (error) {
+       logError('displaySearchResults', error, { posts });
+       showSearchError();
+   }
 }
 
-// Enhanced search results appending with error handling
-function appendSearchResults(posts) {
-    try {
-        const postList = document.getElementById('post-list');
-        if (!postList) {
-            throw new Error('Post list container not found');
-        }
-        
-        if (!Array.isArray(posts)) {
-            console.warn('Invalid posts data provided to appendSearchResults');
-            return;
-        }
-        
-        posts.forEach(post => {
-            try {
-                const regularPost = createRegularPost(post);
-                postList.appendChild(regularPost);
-            } catch (error) {
-                logError('appendSearchResults - creating post', error, { post });
-            }
-        });
-        
-        addGhostCards();
-        
-    } catch (error) {
-        logError('appendSearchResults', error, { posts });
-    }
-}
-
-// Enhanced search status update with error handling (continued)
+// Enhanced search status update with error handling
 function updateSearchStatus(totalResults, query) {
    try {
        const searchStatus = document.getElementById('search-status');
@@ -907,73 +1194,6 @@ function updateSearchStatus(totalResults, query) {
        
    } catch (error) {
        logError('updateSearchStatus', error, { totalResults, query });
-   }
-}
-
-// Enhanced clear search with error handling
-function clearSearch() {
-   try {
-       const searchInput = document.getElementById('search-input');
-       const filterPills = document.querySelectorAll('.pill');
-       const searchStatus = document.getElementById('search-status');
-       
-       if (searchInput) {
-           searchInput.value = '';
-       }
-       
-       if (searchStatus) {
-           searchStatus.style.display = 'none';
-       }
-       
-       filterPills.forEach(p => {
-           try {
-               p.classList.remove('active');
-           } catch (error) {
-               logError('clearSearch - removing active class', error, { pill: p });
-           }
-       });
-       
-       const allPill = document.querySelector('.pill[data-category=""]') || document.querySelector('.pill:first-child');
-       if (allPill) {
-           try {
-               allPill.classList.add('active');
-           } catch (error) {
-               logError('clearSearch - adding active class to all pill', error);
-           }
-       }
-       
-       document.body.classList.remove('search-active');
-       
-       // Reset pagination state
-       page_num = 1;
-       currentSearchQuery = '';
-       currentTag = '';
-       isSearchMode = false;
-       window.hasNext = true;
-       window.currentPage = 1;
-       
-       // Clear and reload regular content
-       const featured = document.getElementById("featured");
-       const postList = document.getElementById('post-list');
-       
-       if (featured) featured.innerHTML = '';
-       if (postList) postList.innerHTML = '';
-       
-       // Reset section title
-       const sectionTitle = document.querySelector('.posts-section .section-title');
-       if (sectionTitle) {
-           sectionTitle.textContent = 'All Posts';
-       }
-       
-       // Scroll to top
-       window.scrollTo({ top: 0, behavior: 'smooth' });
-       
-       // Load regular content
-       loadImages();
-       
-   } catch (error) {
-       logError('clearSearch', error);
-       showErrorMessage('Error clearing search');
    }
 }
 
@@ -994,43 +1214,6 @@ function showSearchError() {
        console.error('Critical error: Cannot display search error message');
    }
 }
-
-// Enhanced scroll listener with error handling
-window.addEventListener('scroll', function() {
-   try {
-       // Debounce scroll events
-       if (window.scrollTimeout) {
-           return;
-       }
-       
-       window.scrollTimeout = setTimeout(() => {
-           try {
-               window.scrollTimeout = null;
-               
-               // Check if we're near the bottom of the page
-               if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
-                   if (isSearchMode) {
-                       // Load more search results
-                       if (window.hasNext && !isLoading) {
-                           isLoading = true;
-                           loadSearchResults(currentSearchQuery, window.currentPage + 1);
-                       }
-                   } else {
-                       // Load more regular content
-                       if (!isLoading) {
-                           loadImages();
-                       }
-                   }
-               }
-           } catch (error) {
-               logError('scroll handler timeout', error);
-           }
-       }, 100);
-       
-   } catch (error) {
-       logError('scroll handler', error);
-   }
-});
 
 // Enhanced content check with error handling
 function checkIfMoreContentNeeded() {
@@ -1072,6 +1255,74 @@ function checkIfMoreContentNeeded() {
    }
 }
 
+// Utility function to safely get element by ID
+function safeGetElementById(id) {
+   try {
+       return document.getElementById(id);
+   } catch (error) {
+       logError('safeGetElementById', error, { id });
+       return null;
+   }
+}
+
+// Utility function to safely add event listener
+function safeAddEventListener(element, event, handler) {
+   try {
+       if (element && typeof element.addEventListener === 'function') {
+           element.addEventListener(event, handler);
+           return true;
+       }
+       return false;
+   } catch (error) {
+       logError('safeAddEventListener', error, { element, event });
+       return false;
+   }
+}
+
+// Initialize error handling
+try {
+   console.log('Blog application initialized with enhanced error handling');
+} catch (error) {
+   console.error('Failed to initialize blog application:', error);
+}
+
+// Enhanced scroll listener with error handling
+window.addEventListener('scroll', function() {
+   try {
+       // Debounce scroll events
+       if (window.scrollTimeout) {
+           return;
+       }
+       
+       window.scrollTimeout = setTimeout(() => {
+           try {
+               window.scrollTimeout = null;
+               
+               // Check if we're near the bottom of the page
+               if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+                   if (isSearchMode) {
+                       // Load more search results
+                       if (window.hasNext && !isLoading) {
+                           isLoading = true;
+                           loadSearchResults(currentSearchQuery, window.currentPage + 1);
+                       }
+                   } else {
+                       // Load more regular content
+                       if (!isLoading) {
+                           loadImages();
+                       }
+                   }
+               }
+           } catch (error) {
+               logError('scroll handler timeout', error);
+           }
+       }, 100);
+       
+   } catch (error) {
+       logError('scroll handler', error);
+   }
+});
+
 // Enhanced window resize listener with error handling
 window.addEventListener('resize', function() {
    try {
@@ -1109,33 +1360,4 @@ window.addEventListener('unhandledrejection', function(event) {
    event.preventDefault(); // Prevent default browser error handling
 });
 
-// Utility function to safely get element by ID
-function safeGetElementById(id) {
-   try {
-       return document.getElementById(id);
-   } catch (error) {
-       logError('safeGetElementById', error, { id });
-       return null;
-   }
-}
 
-// Utility function to safely add event listener
-function safeAddEventListener(element, event, handler) {
-   try {
-       if (element && typeof element.addEventListener === 'function') {
-           element.addEventListener(event, handler);
-           return true;
-       }
-       return false;
-   } catch (error) {
-       logError('safeAddEventListener', error, { element, event });
-       return false;
-   }
-}
-
-// Initialize error handling
-try {
-   console.log('Blog application initialized with enhanced error handling');
-} catch (error) {
-   console.error('Failed to initialize blog application:', error);
-}

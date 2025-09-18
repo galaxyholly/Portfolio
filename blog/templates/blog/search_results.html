@@ -89,5 +89,169 @@
     padding: 2rem;
     color: #666;
 }
+
+/* Add this CSS to fix the card text height */
+.posts-list .card-text {
+    max-height: 4.5em;
+    overflow: hidden;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Search page script loaded');
+    
+    // Apply truncation to search result cards
+    const searchCards = document.querySelectorAll('.posts-list .card');
+    console.log('Found search cards:', searchCards.length);
+    
+    searchCards.forEach((card, index) => {
+        console.log(`Processing card ${index}:`, card);
+        const contentElement = card.querySelector('.card-text');
+        console.log(`Card ${index} content element:`, contentElement);
+        
+        if (contentElement) {
+            console.log(`Card ${index} original text:`, contentElement.textContent);
+            console.log(`Card ${index} scroll height:`, contentElement.scrollHeight);
+            truncateSearchResultContent(contentElement);
+        }
+    });
+});
+
+// Function for search results page (Bootstrap cards)
+function truncateSearchResultContent(element) {
+    console.log('Truncating search result element:', element);
+    
+    const maxHeight = 72; // About 3 lines at 1.5 line-height
+    const originalText = element.textContent.trim();
+    const words = originalText.split(' ');
+    
+    // Set height constraints
+    element.style.maxHeight = maxHeight + 'px';
+    element.style.overflow = 'hidden';
+    element.style.lineHeight = '1.5';
+    
+    // Check if content overflows
+    if (element.scrollHeight <= maxHeight) {
+        console.log('No truncation needed for search result');
+        return;
+    }
+    
+    console.log('Truncation needed for search result. ScrollHeight:', element.scrollHeight);
+    
+    // Binary search for optimal length
+    let low = 0;
+    let high = words.length;
+    let bestFit = '';
+    
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const testText = words.slice(0, mid).join(' ') + '...';
+        
+        element.textContent = testText;
+        
+        if (element.scrollHeight <= maxHeight) {
+            bestFit = words.slice(0, mid).join(' ');
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    if (bestFit.length < originalText.length) {
+        element.textContent = bestFit + '...';
+        console.log('Applied search result truncation');
+    } else {
+        element.textContent = originalText;
+    }
+}
+
+// Function for main page AJAX posts (your existing structure)
+function truncateContentToFit(wrapper) {
+    console.log('Truncating wrapper:', wrapper);
+    
+    const contentSpan = wrapper.querySelector('.featured-post-content-span') || 
+                       wrapper.querySelector('.post span');
+    const contentDiv = wrapper.querySelector('.featured-post-content') || 
+                      wrapper.querySelector('.post');
+    
+    if (!contentSpan || !contentDiv) {
+        return;
+    }
+    
+    // Force a reflow to ensure accurate measurements
+    wrapper.offsetHeight;
+    
+    const originalText = contentSpan.textContent.trim();
+    const words = originalText.split(' ');
+    
+    // Remove any line-clamp
+    contentSpan.style.webkitLineClamp = 'none';
+    contentSpan.style.display = 'block';
+    contentSpan.style.overflow = 'visible';
+    
+    // Force another reflow
+    contentSpan.offsetHeight;
+    
+    // Get the available height (container minus padding)
+    const containerStyle = window.getComputedStyle(contentDiv);
+    const containerPadding = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom);
+    const availableHeight = contentDiv.clientHeight - containerPadding;
+    
+    console.log('Available height:', availableHeight, 'Container height:', contentDiv.clientHeight);
+    
+    // Set the original text first
+    contentSpan.textContent = originalText;
+    
+    // Check if truncation is needed
+    if (contentSpan.scrollHeight <= availableHeight) {
+        console.log('No truncation needed - fits naturally');
+        return;
+    }
+    
+    console.log('Truncation needed. ScrollHeight:', contentSpan.scrollHeight, 'Available:', availableHeight);
+    
+    // Binary search for the right amount of text
+    let low = 0;
+    let high = words.length;
+    let bestFit = '';
+    let iterations = 0;
+    const maxIterations = 20; // Prevent infinite loops
+    
+    while (low <= high && iterations < maxIterations) {
+        iterations++;
+        const mid = Math.floor((low + high) / 2);
+        const testText = words.slice(0, mid).join(' ');
+        
+        // Test with ellipsis if we're truncating
+        const finalText = mid < words.length ? testText + '...' : testText;
+        contentSpan.textContent = finalText;
+        
+        // Force reflow for accurate measurement
+        contentSpan.offsetHeight;
+        
+        if (contentSpan.scrollHeight <= availableHeight) {
+            bestFit = testText;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    // Apply the best fit
+    if (bestFit && bestFit.length < originalText.length) {
+        contentSpan.textContent = bestFit + '...';
+        console.log('Applied truncation after', iterations, 'iterations');
+    } else {
+        contentSpan.textContent = originalText;
+        console.log('Could not find good truncation point, using original');
+    }
+}
+</script>
+
 {% endblock %}

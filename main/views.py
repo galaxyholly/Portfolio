@@ -76,7 +76,7 @@ def get_projects_data():
             {
                 'title': 'Django Portfolio Blog',
                 'description': 'Full-stack blog with AJAX search, authentication, and content management.',
-                'url': '/blog/blog_index',
+                'url': '/blog/',
                 'tags': ['Django', 'Python', 'JavaScript', 'CSS Grid'],
                 'featured': False,
                 'status': 'live'

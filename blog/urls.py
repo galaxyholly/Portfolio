@@ -12,7 +12,7 @@ app_name = "blog"
 
 urlpatterns = [
     # Blog post listing page
-    path("blog_index", views.blog_post_view, name="index"),
+    path("", views.blog_post_view, name="index"),
     
     # Create new blog post page
     path("blog_form", views.post_blog, name="blog_form"),

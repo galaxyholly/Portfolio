@@ -8,32 +8,20 @@ import logging
 from django import forms
 from django.core.exceptions import ValidationError
 from ckeditor.widgets import CKEditorWidget
+from better_profanity import profanity
 
 from .models import BlogPost, Comment, Tag
 
 logger = logging.getLogger(__name__)
 
-
 class BlogPostForm(forms.ModelForm):
     """
-    Form for creating and editing blog posts.
-    
-    Uses predefined tags instead of free-form input for better organization.
+    Form for creating and editing blog posts with predefined tags.
     """
     
-    # Predefined tag choices for consistent categorization
-    PREDEFINED_TAGS = [
-        ('Project', 'Project'),
-        ('Thoughts', 'Thoughts'), 
-        ('Stories', 'Stories'),
-        ('Career', 'Career'),
-        ('Tech', 'Tech'),
-        ('Other', 'Other'),
-    ]
-    
-    # Replace free-form tags with predefined checkboxes
-    tags_selection = forms.MultipleChoiceField(
-        choices=PREDEFINED_TAGS,
+    # Use ModelMultipleChoiceField to work directly with Tag objects
+    tags = forms.ModelMultipleChoiceField(
+        queryset=Tag.objects.all(),
         widget=forms.CheckboxSelectMultiple(attrs={
             'class': 'tag-checkbox-group'
         }),
@@ -42,7 +30,7 @@ class BlogPostForm(forms.ModelForm):
         help_text="Select one or more tags that describe your post"
     )
     
-    # Image field with validation and custom styling
+    # Image field with validation
     image = forms.ImageField(
         required=False,
         help_text="Upload a featured image for your post (optional, max 5MB)",
@@ -53,11 +41,9 @@ class BlogPostForm(forms.ModelForm):
     )
 
     class Meta:
-        """Form metadata and field configuration."""
         model = BlogPost
-        fields = ['title', 'content', 'image']
+        fields = ['title', 'content', 'tags', 'image']  # Include tags in fields
         
-        # Custom widgets for form fields
         widgets = {
             'content': CKEditorWidget(),
             'title': forms.TextInput(attrs={
@@ -68,13 +54,16 @@ class BlogPostForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
-        """Initialize form and populate tags if editing existing post."""
+        """Initialize form and ensure we have the predefined tags."""
         super().__init__(*args, **kwargs)
         
-        # If editing existing post, pre-select current tags
-        if self.instance and self.instance.pk:
-            current_tags = [tag.name for tag in self.instance.tags.all()]
-            self.fields['tags_selection'].initial = current_tags
+        # Create predefined tags if they don't exist
+        predefined_tags = ['Project', 'Thoughts', 'Stories', 'Career', 'Tech', 'Other']
+        for tag_name in predefined_tags:
+            Tag.objects.get_or_create(name=tag_name)
+        
+        # Update the queryset to only show predefined tags
+        self.fields['tags'].queryset = Tag.objects.filter(name__in=predefined_tags)
     
     def clean_title(self):
         """Validate blog post title."""
@@ -88,59 +77,24 @@ class BlogPostForm(forms.ModelForm):
             
         return title
     
-    def clean_image(self):
-        """Validate uploaded image."""
-        image = self.cleaned_data.get('image')
-        
-        if image:
-            # Check file size (5MB limit)
-            if image.size > 5 * 1024 * 1024:
-                raise ValidationError("Image file size must be under 5MB.")
-                
-            # Check file type
-            if not image.content_type.startswith('image/'):
-                raise ValidationError("Please upload a valid image file.")
-                
-        return image
+def clean_image(self):
+    """Validate uploaded image."""
+    from django.core.files.uploadedfile import UploadedFile
     
-    def save(self, commit=True):
-        """Save the form and handle tags processing."""
-        try:
-            # Save the blog post first
-            instance = super().save(commit=commit)
-            
-            if commit:
-                # Process tags after the instance is saved
-                self._save_tags(instance)
-            
-            return instance
-            
-        except Exception as e:
-            logger.error(f"Error saving blog post form: {e}")
-            raise ValidationError("Error saving post. Please try again.")
+    image = self.cleaned_data.get('image')
     
-    def _save_tags(self, instance):
-        """Process and save selected tags."""
-        try:
-            selected_tags = self.cleaned_data.get('tags_selection', [])
-            logger.info(f"Processing tags for post {instance.id}: {selected_tags}")
+    if image and isinstance(image, UploadedFile):
+        # Only validate newly uploaded files
+        # Check file size (5MB limit)
+        if image.size > 5 * 1024 * 1024:
+            raise ValidationError("Image file size must be under 5MB.")
             
-            # Clear existing tags
-            instance.tags.clear()
-            
-            # Add selected tags
-            for tag_name in selected_tags:
-                tag, created = Tag.objects.get_or_create(
-                    name=tag_name,
-                    defaults={'name': tag_name}
-                )
-                instance.tags.add(tag)
+        # Check file type
+        if not image.content_type.startswith('image/'):
+            raise ValidationError("Please upload a valid image file.")
                 
-            logger.info(f"Successfully updated tags for post {instance.id}")
-            
-        except Exception as e:
-            logger.error(f"Error processing tags: {e}")
-            # Don't raise exception here to avoid breaking post save
+    return image
+
 
 
 class BlogPostCommentForm(forms.ModelForm):
@@ -162,9 +116,10 @@ class BlogPostCommentForm(forms.ModelForm):
         }
     
     def clean_comment_text(self):
-        """Validate comment content."""
+        """Validate comment content for profanity and basic spam patterns."""
         comment_text = self.cleaned_data.get('comment_text', '').strip()
         
+        # Basic length validation
         if not comment_text:
             raise ValidationError("Comment cannot be empty.")
             
@@ -173,5 +128,9 @@ class BlogPostCommentForm(forms.ModelForm):
             
         if len(comment_text) > 1000:
             raise ValidationError("Comment must be under 1000 characters.")
+        
+        # Profanity check
+        if profanity.contains_profanity(comment_text):
+            raise ValidationError("Please keep comments respectful and avoid inappropriate language.")
             
         return comment_text

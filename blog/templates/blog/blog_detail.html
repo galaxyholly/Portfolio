@@ -71,13 +71,20 @@
             {% if user.is_authenticated %}
             <div class="comment-form-section">
                 <h6 class="comment-form-title">Leave a comment</h6>
+                {% if form.comment_text.errors %}
+                    <div class="alert alert-danger" style="margin-bottom: 15px; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
+                        {% for error in form.comment_text.errors %}
+                            <p style="margin: 0;">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <form method="post">
                     {% csrf_token %}
                     <textarea name="{{ form.comment_text.name }}" 
                             id="{{ form.comment_text.id_for_label }}" 
                             class="comment-textarea"
                             placeholder="Share your thoughts..."
-                            required></textarea>
+                            required>{{ form.comment_text.value|default:"" }}</textarea>
                     <button type="submit" class="comment-submit-btn">
                         Submit
                     </button>

@@ -1,11 +1,11 @@
-
 {% load static %}
-
+<link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'main/home.css' %}?v={% now 'U' %}">
 {% endblock %}
 
 {% block content %}
+<!DOCTYPE html>
 <section class="hero">
   <div class="hero-inner">
     <div class="hero-avatar">
@@ -39,7 +39,7 @@
             <span class="label">GitHub</span>
           </a>
           {% if dashboard_available %}
-          <a class="icon-btn dashboard" href="{{ dashboard_iframe_src }}" target="_blank" rel="noopener noreferrer" aria-label="View live dashboard" title="Live Dashboard">
+          <a class="icon-btn dashboard" href="https://dashboard.holly-portfolio.com/dashboard" target="_blank" rel="noopener noreferrer" aria-label="View live dashboard" title="Live Dashboard">
             <svg class="icon" viewBox="0 0 24 24" role="img" aria-hidden="true">
                 <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
             </svg>
@@ -52,36 +52,10 @@
 </section>
 
 <div class="grid">
-  <!-- Left: Blog -->
-  <section class="col blog" aria-labelledby="blog-heading">
-    <div class="section-head">
-      <h2 id="blog-heading">Latest Posts</h2>
-      <a class="link" href="{% url 'blog:index' %}" aria-label="View all blog posts">View All</a>
-    </div>
-
-    <div class="cards">
-      {% for post in latest_posts %}
-      <article class="card post" role="article">
-        <h3><a href="{% url 'blog:blog_detail' post.id %}">{{ post.title|truncatechars:60 }}</a></h3>
-        <p>{{ post.content|truncatewords:26|striptags }}</p>
-        <div class="meta">
-          <time datetime="{{ post.pub_date|date:'c' }}">{{ post.pub_date|date:"M d, Y" }}</time>
-          <span>by {{ post.author.username|default:"Anonymous" }}</span>
-        </div>
-      </article>
-      {% empty %}
-      <article class="card post" role="article">
-        <h3>Nothing yet</h3>
-        <p>Posts are coming soon—check back shortly.</p>
-      </article>
-      {% endfor %}
-    </div>
-  </section>
-
-  <!-- Right: Projects -->
+  <!-- Left: Projects (moved from right) -->
   <aside class="col projects" aria-labelledby="projects-heading">
     <div class="section-head">
-      <h2 id="projects-heading">Projects</h2>
+      <h2 id="projects-heading">Projects (Click Here)</h2>
     </div>
 
     <!-- Featured/live project with dashboard -->
@@ -90,7 +64,7 @@
         <div class="frame-inner">
           {% if dashboard_available %}
           <iframe
-            src="{{ dashboard_iframe_src }}"
+            src="https://dashboard.holly-portfolio.com/dashboard"
             title="Live Translation Service Dashboard showing real-time metrics"
             loading="lazy"
             sandbox="allow-scripts allow-same-origin"
@@ -105,16 +79,14 @@
       </div>
       <div class="project-info">
         <h3>
-          <a href="{% url 'main:translation' %}" aria-label="Learn more about the Translation Microservice">
             Scalable Translation Microservice
-          </a>
         </h3>
-        <p>German→English microservice with per‑core worker pools, adaptive scaling, and real‑time metrics.</p>
+        <p>Multi-core German to English Real-time Translator Microservice (Live)</p>
         <div class="tags" role="list" aria-label="Technologies used">
           <span role="listitem">Python</span>
           <span role="listitem">Flask</span>
           <span role="listitem">Multiprocessing</span>
-          <span role="listitem">Discord.py</span>
+          <span role="listitem">JavaScript</span>
         </div>
       </div>
     </article>
@@ -148,6 +120,27 @@
       {% endfor %}
     </div>
   </aside>
+
+  <!-- Right: Blog (moved from left) -->
+  <section class="col blog" aria-labelledby="blog-heading">
+    <div class="section-head">
+      <h2 id="blog-heading">Latest Posts</h2>
+      <a class="link" href="{% url 'blog:index' %}" aria-label="View all blog posts">View All</a>
+    </div>
+
+    <div class="cards">
+      {% for post in latest_posts %}
+        <article class="card post" role="article" data-url="{% if post.pk %}{% url 'blog:blog_detail' post.pk %}{% endif %}">
+          <h3>{{ post.title|truncatechars:60 }}</h3>
+          <p>{{ post.get_clean_excerpt }}</p>
+          <div class="meta">
+            <time datetime="{{ post.pub_date|date:'c' }}">{{ post.pub_date|date:"M d, Y" }}</time>
+            <span>by {{ post.author.username|default:"Anonymous" }}</span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
 </div>
 
 <script>
@@ -242,10 +235,19 @@ function measureTextWidth(text, fontSize, fontWeight, fontFamily) {
 }
 
 function initializeProjectCards() {
-    // Add click handlers for project cards (if needed)
-    const projectCards = document.querySelectorAll('.card.featured, .mini-card');
-    
-    projectCards.forEach(card => {
+    // Handle featured project card
+    const featuredCard = document.querySelector('.card.featured');
+    if (featuredCard) {
+        featuredCard.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Replace this URL with your actual translation page URL
+            window.location.href = "{% url 'main:translation' %}";
+        });
+    }
+
+    // Handle other project cards (mini-cards)
+    const miniCards = document.querySelectorAll('.mini-card');
+    miniCards.forEach(card => {
         try {
             const link = card.querySelector('a');
             if (link) {
@@ -273,6 +275,128 @@ function redirectToSite(url) {
         console.error('Error redirecting:', error);
     }
 }
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        initializeIconButtons();
+        initializeProjectCards();
+        addGhostCards(); // Add this new function
+    } catch (error) {
+        console.error('Error initializing home page:', error);
+    }
+});
+
+function addGhostCards() {
+    const cardsContainer = document.querySelector('.blog .cards');
+    const existingCards = cardsContainer.querySelectorAll('.card.post:not(.ghost-card)');
+    const currentCount = existingCards.length;
+    const targetCount = 3;
+    
+    // Add ghost cards to reach target count
+    for (let i = currentCount; i < targetCount; i++) {
+        const ghostCard = document.createElement('article');
+        ghostCard.className = 'card post ghost-card';
+        ghostCard.setAttribute('aria-hidden', 'true');
+        ghostCard.style.opacity = '0';
+        ghostCard.style.pointerEvents = 'none';
+        ghostCard.style.visibility = 'hidden';
+        
+        // Add some content to maintain card height
+        ghostCard.innerHTML = '<div style="height: 150px;"></div>';
+        
+        cardsContainer.appendChild(ghostCard);
+    }
+}
+</script>
+
+<script>
+  function cleanAndTruncateText(htmlString, maxWords = 26) {
+    // Create a temporary div to parse HTML and decode entities
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlString;
+    
+    // Get plain text (this automatically strips tags and decodes entities)
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Split into words and truncate
+    const words = plainText.trim().split(/\s+/);
+    
+    if (words.length <= maxWords) {
+        return plainText;
+    }
+    
+    return words.slice(0, maxWords).join(' ') + '...';
+}
+
+function cleanPostContent() {
+    console.log('Starting cleanPostContent function');
+    const postCards = document.querySelectorAll('.card.post p');
+    console.log('Found post cards:', postCards.length);
+    
+    postCards.forEach((p, index) => {
+        console.log(`Processing post ${index}:`);
+        console.log('Original innerHTML:', p.innerHTML);
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = p.innerHTML;
+        const plainText = tempDiv.textContent || tempDiv.innerText || '';
+        console.log('Plain text:', plainText);
+        console.log('Plain text length:', plainText.length);
+        
+        const words = plainText.trim().split(/\s+/);
+        console.log('Word count:', words.length);
+        console.log('First few words:', words.slice(0, 5));
+        
+        if (words.length > 26) {
+            const truncated = words.slice(0, 26).join(' ') + '...';
+            console.log('Truncated text:', truncated);
+            p.textContent = truncated;
+        } else {
+            p.textContent = plainText;
+        }
+    });
+}
+
+// Apply to all post content on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const postCards = document.querySelectorAll('.card.post p');
+    
+    postCards.forEach(p => {
+        const originalContent = p.innerHTML;
+        const cleanedContent = cleanAndTruncateText(originalContent, 26);
+        p.textContent = cleanedContent;
+    });
+});
+</script>
+
+<script>
+// Add this to your existing DOMContentLoaded event listener
+function initializeBlogCards() {
+    const blogCards = document.querySelectorAll('.card.post[data-url]');
+    
+    blogCards.forEach(card => {
+        const url = card.dataset.url;
+        if (url) {
+            card.addEventListener('click', function() {
+                window.location.href = url;
+            });
+        }
+    });
+}
+
+// Update your existing DOMContentLoaded listener:
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        initializeIconButtons();
+        initializeProjectCards();
+        initializeBlogCards(); // Add this line
+        addGhostCards();
+    } catch (error) {
+        console.error('Error initializing home page:', error);
+    }
+});
 </script>
 
 {% include 'messages.html' %}

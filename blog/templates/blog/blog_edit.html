@@ -24,12 +24,12 @@
                         {% if field.field.required %}<span style="color: #dc3545;">*</span>{% endif %}
                     </label>
                     
-                    {% if field.name == 'tags' %}
-                        <div class="tags-input-wrapper">
+                    {% if field.name == 'tags_selection' %}
+                        <div class="tags-checkbox-wrapper">
                             {{ field }}
-                            <div id="tag-preview" class="tag-preview"></div>
                         </div>
                     {% elif field.name == 'image' %}
+                        <!-- Keep your existing image handling -->
                         <div class="image-upload-wrapper">
                             {{ field }}
                             <label for="{{ field.id_for_label }}" class="file-upload-label" id="file-upload-label">
@@ -71,39 +71,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Tags functionality
-    const tagsInput = document.querySelector('[name="tags"]');
-    const tagPreview = document.getElementById('tag-preview');
-    
-    if (tagsInput && tagPreview) {
-        tagsInput.addEventListener('input', updateTagPreview);
+
+    window.removeTag = function(tagToRemove) {
+        const currentTags = tagsInput.value.split(',').map(tag => tag.trim());
+        const filteredTags = currentTags.filter(tag => tag !== tagToRemove);
+        tagsInput.value = filteredTags.join(', ');
         updateTagPreview();
-        
-        function updateTagPreview() {
-            const tagsText = tagsInput.value.trim();
-            tagPreview.innerHTML = '';
-            
-            if (tagsText) {
-                const tags = tagsText.split(',').map(tag => tag.trim()).filter(tag => tag);
-                tags.forEach(tag => {
-                    const tagElement = document.createElement('span');
-                    tagElement.className = 'tag-item';
-                    tagElement.innerHTML = `
-                        ${tag}
-                        <span class="remove-tag" onclick="removeTag('${tag}')">&times;</span>
-                    `;
-                    tagPreview.appendChild(tagElement);
-                });
-            }
-        }
-        
-        window.removeTag = function(tagToRemove) {
-            const currentTags = tagsInput.value.split(',').map(tag => tag.trim());
-            const filteredTags = currentTags.filter(tag => tag !== tagToRemove);
-            tagsInput.value = filteredTags.join(', ');
-            updateTagPreview();
-        };
-    }
+    };
     
     // Image upload functionality
     const imageInput = document.querySelector('[name="image"]');

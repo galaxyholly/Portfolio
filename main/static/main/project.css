@@ -480,3 +480,50 @@
   box-sizing: border-box;
   min-height: 0;
 }
+
+@media (max-width: 768px) {
+  .project-showcase {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto; /* Add the fourth row */
+    gap: 20px;
+    padding: 0 15px; /* Add some padding */
+  }
+  
+  .dashboard-card {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  
+  .dashboard-frame {
+    height: 250px; /* Make sure it has height */
+  }
+  
+  .image-card {
+    grid-column: 1;
+    grid-row: 2;
+    aspect-ratio: auto; /* Remove the square constraint on mobile */
+  }
+  
+  .image-frame {
+    height: 250px; /* Give it a fixed height */
+    aspect-ratio: auto; /* Remove aspect ratio constraint */
+  }
+  
+  .description-card {
+    grid-column: 1;
+    grid-row: 3;
+    aspect-ratio: auto; /* Remove square constraint */
+    height: auto;
+  }
+  
+  .tech-card {
+    grid-column: 1;
+    grid-row: 4; /* Make sure this is included */
+  }
+  
+  /* Fix the bubble nav positioning */
+  .bubble-nav {
+    position: static; /* Change from relative */
+    margin: 30px auto 40px; /* Add top margin */
+  }
+}
